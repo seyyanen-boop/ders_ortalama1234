@@ -25,19 +25,18 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; }
     body { background-color: var(--bg); color: var(--text); padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-    .container { background: var(--card); padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03); width: 100%; max-width: 400px; }
+    .container { background: var(--card); padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03); width: 100%; max-width: 400px; text-align: center; }
     
-    /* Mobil Uyumlu Grid Düzeni */
     .app-container { background: transparent; width: 100%; max-width: 1100px; display: grid; grid-template-columns: 1fr; gap: 15px; }
     @media (min-width: 768px) {
       .app-container { grid-template-columns: 1fr 1fr 1.1fr; }
     }
     
-    .panel { background: white; padding: 18px; border-radius: 20px; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.02); display: flex; flex-direction: column; min-height: 450px; }
+    .panel { background: white; padding: 18px; border-radius: 20px; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.02); display: flex; flex-direction: column; min-height: 450px; text-align: left; }
     h2, h3 { margin-bottom: 4px; font-weight: 700; color: #1e293b; font-size: 16px; }
     .subtitle { color: var(--text-muted); font-size: 12px; margin-bottom: 12px; }
     
-    .form-group { margin-bottom: 14px; }
+    .form-group { margin-bottom: 14px; text-align: left; }
     label { display: block; font-size: 12px; margin-bottom: 4px; font-weight: 600; color: #475569; }
     input { width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; color: var(--text); }
     button { width: 100%; padding: 12px; background-color: var(--primary); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
@@ -46,12 +45,9 @@
     .alert { padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; text-align: center; display: none; font-weight: 500; }
     .alert-error { background-color: #fef2f2; color: #991b1b; border: 1px solid #fee2e2; }
     .alert-success { background-color: #f0fdf4; color: #166534; border: 1px solid #dcfce7; }
+    .alert-warning { background-color: #fffbeb; color: #b45309; border: 1px solid #fef3c7; }
 
-    .switch-auth { text-align: center; margin-top: 12px; font-size: 12px; color: var(--text-muted); }
-    .switch-auth span { color: var(--primary); font-weight: 600; cursor: pointer; }
-
-    /* Bildirim İzin Banner Tasarımı */
-    #notifBanner { background: #e0e7ff; color: #312e81; padding: 10px 14px; border-radius: 10px; margin-bottom: 12px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+    #notifBanner { background: #e0e7ff; color: #312e81; padding: 10px 14px; border-radius: 10px; margin-bottom: 12px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; text-align: left; }
     #notifBanner button { width: auto; padding: 6px 12px; font-size: 11px; background: var(--primary); }
 
     .chat-box { border: 1px solid #f1f5f9; flex: 1; overflow-y: auto; padding: 10px; border-radius: 10px; margin-bottom: 10px; background: #f8fafc; max-height: 250px; }
@@ -81,46 +77,31 @@
       position: fixed; top: 15px; right: 15px; left: 15px; background: #ffffff; border-left: 5px solid #25d366;
       box-shadow: 0 10px 25px rgba(0,0,0,0.15); padding: 12px 16px; border-radius: 10px; z-index: 9999;
       display: flex; flex-direction: column; gap: 4px; transition: transform 0.3s ease, opacity 0.3s ease;
-      transform: translateY(-120%); opacity: 0;
+      transform: translateY(-120%); opacity: 0; text-align: left;
     }
     #whatsappToast.show { transform: translateY(0); opacity: 1; }
   </style>
 </head>
 <body>
 
-  <!-- BİLDİRİM BALONU -->
   <div id="whatsappToast">
     <div style="font-weight:700; font-size:12px; color:#075e54;">💬 Yeni Mesaj (<span id="toastSender"></span>)</div>
     <div style="font-size:12px; color:#334155;" id="toastMessage"></div>
   </div>
 
-  <!-- GİRİŞ / KAYIT PANELİ -->
+  <!-- GİRİŞ / İSİM PANELİ -->
   <div class="container" id="authContainer">
     <div id="alertBox" class="alert"></div>
 
-    <!-- Giriş Formu -->
-    <div id="loginFormContainer">
-      <h2>Giriş Yap</h2>
-      <p class="subtitle">Sisteme erişmek için bilgilerinizi girin.</p>
-      <form onsubmit="handleAuth(event, 'login')">
-        <div class="form-group"><label>E-posta</label><input type="email" id="loginEmail" required placeholder="ornek@mail.com"></div>
-        <div class="form-group"><label>Şifre</label><input type="password" id="loginPassword" required placeholder="••••••••"></div>
-        <button type="submit">Giriş Yap</button>
-      </form>
-      <div class="switch-auth">Hesabın yok mu? <span onclick="toggleAuthMode('signup')">Kayıt Ol</span></div>
-    </div>
-
-    <!-- Kayıt Ol Formu -->
-    <div id="signupFormContainer" class="hidden">
-      <h2>Kayıt Ol</h2>
-      <p class="subtitle">Yeni bir hesap oluşturun.</p>
-      <form onsubmit="handleAuth(event, 'signup')">
-        <div class="form-group"><label>E-posta</label><input type="email" id="signupEmail" required placeholder="ornek@mail.com"></div>
-        <div class="form-group"><label>Şifre</label><input type="password" id="signupPassword" required placeholder="••••••••"></div>
-        <button type="submit">Kayıt Ol</button>
-      </form>
-      <div class="switch-auth">Zaten hesabın var mı? <span onclick="toggleAuthMode('login')">Giriş Yap</span></div>
-    </div>
+    <h2>Sisteme Giriş</h2>
+    <p class="subtitle">Adını yaz, onaylandıysan direkt bağlan.</p>
+    <form onsubmit="handleNameLogin(event)">
+      <div class="form-group">
+        <label>Adın / Takma Adın</label>
+        <input type="text" id="usernameInput" required placeholder="Örn: Eymen">
+      </div>
+      <button type="submit">Giriş Yap / Kaydol</button>
+    </form>
   </div>
 
   <!-- ANA UYGULAMA PANELİ -->
@@ -134,7 +115,6 @@
       </div>
       <p class="subtitle" id="userWelcomeText"></p>
       
-      <!-- Bildirim İzin Banner'ı -->
       <div id="notifBanner" class="hidden">
         <span>Bildirimleri Aç (WhatsApp Gibi Al)</span>
         <button onclick="requestNotificationPermission()">İzin Ver</button>
@@ -188,7 +168,7 @@
     const SUPABASE_ANON_KEY = "sb_publishable_aJVa7IVB6HfcQYug4JNeow_RwnGZaB7";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    let currentUserEmail = "";
+    let currentUserName = localStorage.getItem("chat_username") || "";
     let activeChatPartner = null;
     let activeType = null;
     let timerInterval = null;
@@ -196,26 +176,17 @@
     let myChart = null;
     let lastCheckedMsgId = 0;
 
-    // Service Worker Kaydı (Telefonda arkaplanda çalışması için şart)
+    // Sayfa açılır açılışta daha önce giriş yaptıysa ve onaylıysa direkt içeri al
+    window.addEventListener('DOMContentLoaded', () => {
+      if (currentUserName) {
+        checkUserApprovalAndEnter(currentUserName, true);
+      }
+    });
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW Hata:', err));
       });
-    }
-
-    function toggleAuthMode(mode) {
-      const loginContainer = document.getElementById("loginFormContainer");
-      const signupContainer = document.getElementById("signupFormContainer");
-      const alertBox = document.getElementById("alertBox");
-      alertBox.style.display = "none";
-
-      if (mode === 'signup') {
-        loginContainer.classList.add("hidden");
-        signupContainer.classList.remove("hidden");
-      } else {
-        signupContainer.classList.add("hidden");
-        loginContainer.classList.remove("hidden");
-      }
     }
 
     function showAlert(message, type = 'error') {
@@ -225,30 +196,49 @@
       alertBox.style.display = "block";
     }
 
-    async function handleAuth(e, type) {
+    async function handleNameLogin(e) {
       e.preventDefault();
-      const email = document.getElementById(type + "Email").value;
-      const password = document.getElementById(type + "Password").value;
+      const name = document.getElementById("usernameInput").value.trim();
+      if (!name) return;
+      await checkUserApprovalAndEnter(name, false);
+    }
 
-      if (type === 'signup') {
-        const { data, error } = await _supabase.auth.signUp({ email, password });
-        if (error) { showAlert("Hata: " + error.message, 'error'); return; }
-        showAlert("Kayıt başarılı! E-postanızı onaylayın veya doğrudan giriş yapın.", 'success');
-        setTimeout(() => toggleAuthMode('login'), 2000);
-      } else {
-        const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
-        if (error) { showAlert("Hata: " + error.message, 'error'); return; }
+    async function checkUserApprovalAndEnter(name, isAutoLogin) {
+      // Önce veritabanında bu kullanıcı var mı bakalım
+      let { data, error } = await _supabase.from('app_users').select('*').eq('name', name).single();
 
-        currentUserEmail = data.user.email;
+      if (!data) {
+        // Kullanıcı hiç yoksa tabloya otomatik ekleyelim (is_approved: false olarak düşer)
+        const insertRes = await _supabase.from('app_users').insert([{ name: name, is_approved: false }]);
+        if (insertRes.error) {
+          showAlert("Bir hata oluştu: " + insertRes.error.message, 'error');
+          return;
+        }
+        showAlert("Adın kaydedildi! Yönetici onay verene kadar beklemelisin.", 'warning');
+        localStorage.removeItem("chat_username");
+        return;
+      }
+
+      if (data.is_approved) {
+        // Onaylıysa içeri al
+        currentUserName = name;
+        localStorage.setItem("chat_username", name);
         document.getElementById("authContainer").classList.add("hidden");
         document.getElementById("appMainPanel").classList.remove("hidden");
-        document.getElementById("userWelcomeText").textContent = `Oturum: ${currentUserEmail.split('@')[0]}`;
+        document.getElementById("userWelcomeText").textContent = `Oturum: ${currentUserName}`;
         
         if (Notification.permission !== "granted") {
           document.getElementById("notifBanner").classList.remove("hidden");
         }
 
         initApp();
+      } else {
+        // Onaylı değilse
+        if (!isAutoLogin) {
+          showAlert("Bu isim henüz onaylanmamış. Yöneticinin onaylamasını bekleyin.", 'warning');
+        } else {
+          localStorage.removeItem("chat_username");
+        }
       }
     }
 
@@ -271,9 +261,9 @@
       }, 3000);
     }
 
-    function switchChatMode(partnerEmail) {
-      activeChatPartner = partnerEmail === 'general' ? null : partnerEmail;
-      document.getElementById("chatHeaderTitle").textContent = activeChatPartner ? `🔒 ${activeChatPartner.split('@')[0]}` : "💬 Genel Sohbet";
+    function switchChatMode(partnerName) {
+      activeChatPartner = partnerName === 'general' ? null : partnerName;
+      document.getElementById("chatHeaderTitle").textContent = activeChatPartner ? `🔒 ${activeChatPartner}` : "💬 Genel Sohbet";
       const backBtn = document.getElementById("backToGeneralBtn");
       if (activeChatPartner) backBtn.classList.remove("hidden");
       else backBtn.classList.add("hidden");
@@ -289,21 +279,22 @@
       chatBox.innerHTML = "";
 
       data.forEach(m => {
-        const isDirect = m.recipient && ((m.email === currentUserEmail && m.recipient === activeChatPartner) || (m.email === activeChatPartner && m.recipient === currentUserEmail));
+        // Not: Eskiden email tutuyorduk, şimdi 'email' kolonunu isim (username) tutmak için kullanıyoruz
+        const isDirect = m.recipient && ((m.email === currentUserName && m.recipient === activeChatPartner) || (m.email === activeChatPartner && m.recipient === currentUserName));
         const isGeneral = !m.recipient && activeChatPartner === null;
 
         if (isDirect || isGeneral) {
-          const isMe = m.email === currentUserEmail;
+          const isMe = m.email === currentUserName;
           const div = document.createElement("div");
           div.className = `msg ${isMe ? 'me' : ''}`;
-          div.innerHTML = `<span class="msg-sender" onclick="switchChatMode('${m.email}')">${m.email.split('@')[0]}</span>${m.text}`;
+          div.innerHTML = `<span class="msg-sender" onclick="switchChatMode('${m.email}')">${m.email}</span>${m.text}`;
           chatBox.appendChild(div);
         }
 
-        if (m.recipient === currentUserEmail && m.id > lastCheckedMsgId) {
+        if (m.recipient === currentUserName && m.id > lastCheckedMsgId) {
           lastCheckedMsgId = m.id;
           if (m.email !== activeChatPartner) {
-            triggerSystemNotification(m.email.split('@')[0], m.text);
+            triggerSystemNotification(m.email, m.text);
           }
         }
       });
@@ -334,7 +325,7 @@
       if (!text) return;
 
       input.value = "";
-      const payload = { email: currentUserEmail, text: text };
+      const payload = { email: currentUserName, text: text };
       if (activeChatPartner) payload.recipient = activeChatPartner;
 
       await _supabase.from('messages').insert([payload]);
@@ -350,15 +341,15 @@
       data.forEach(log => { userTotals[log.email] = (userTotals[log.email] || 0) + log.duration_minutes; });
 
       listEl.innerHTML = "";
-      Object.keys(userTotals).forEach(email => {
-        const total = userTotals[email];
+      Object.keys(userTotals).forEach(name => {
+        const total = userTotals[name];
         const sa = Math.floor(total / 60);
         const dk = total % 60;
         const timeStr = sa > 0 ? `${sa} sa ${dk} dk` : `${dk} dk`;
 
         const div = document.createElement("div");
         div.className = "leaderboard-item";
-        div.innerHTML = `<span class="user-badge" onclick="switchChatMode('${email}')">👤 ${email.split('@')[0]}</span><strong style="color:var(--primary);">${timeStr}</strong>`;
+        div.innerHTML = `<span class="user-badge" onclick="switchChatMode('${name}')">👤 ${name}</span><strong style="color:var(--primary);">${timeStr}</strong>`;
         listEl.appendChild(div);
       });
     }
@@ -390,13 +381,13 @@
     }
 
     async function saveTimeLog(type, mins) {
-      await _supabase.from('time_logs').insert([{ email: currentUserEmail, activity_type: type, duration_minutes: mins }]);
+      await _supabase.from('time_logs').insert([{ email: currentUserName, activity_type: type, duration_minutes: mins }]);
       loadStats();
       loadLeaderboard();
     }
 
     async function loadStats() {
-      const { data } = await _supabase.from('time_logs').select('created_at, activity_type, duration_minutes').eq('email', currentUserEmail);
+      const { data } = await _supabase.from('time_logs').select('created_at, activity_type, duration_minutes').eq('email', currentUserName);
       const gunEtiketleri = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
       let dList = [0,0,0,0,0,0,0], eList = [0,0,0,0,0,0,0];
       let toplam = 0, aktifGun = new Set();
