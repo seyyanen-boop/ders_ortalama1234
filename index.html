@@ -93,7 +93,7 @@
     .alert-error { background-color: #fef2f2; color: #991b1b; border: 1px solid #fee2e2; }
     .alert-success { background-color: #f0fdf4; color: #166534; border: 1px solid #dcfce7; }
 
-    .chat-box { border: 1.5px solid var(--border); flex: 1; overflow-y: auto; padding: 8px; border-radius: 10px; margin-bottom: 8px; background: var(--bg); max-height: 220px; -webkit-overflow-scrolling: touch; }
+    .chat-box { border: 1.5px solid var(--border); flex: 1; overflow-y: auto; padding: 8px; border-radius: 10px; margin-bottom: 8px; background: var(--bg); max-height: 180px; -webkit-overflow-scrolling: touch; }
     .msg { margin-bottom: 8px; font-size: 12px; background: var(--card); border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px; width: fit-content; max-width: 85%; line-height: 1.3; word-break: break-word; color: var(--text); }
     .msg.me { background: #e0e7ff; color: #1e1b4b; margin-left: auto; border: none; }
     [data-theme="dark"] .msg.me { background: #312e81; color: #e0e7ff; }
@@ -101,11 +101,11 @@
     
     .admin-tag { background-color: #ef4444; color: white; font-size: 8px; padding: 2px 4px; border-radius: 4px; font-weight: 700; margin-left: 4px; vertical-align: middle; }
 
-    .leaderboard-list { flex: 1; overflow-y: auto; border: 1.5px solid var(--border); border-radius: 10px; padding: 6px; background: var(--bg); max-height: 200px; -webkit-overflow-scrolling: touch; }
+    .leaderboard-list { flex: 1; overflow-y: auto; border: 1.5px solid var(--border); border-radius: 10px; padding: 6px; background: var(--bg); max-height: 180px; -webkit-overflow-scrolling: touch; }
     .leaderboard-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-bottom: 1px solid var(--border); font-size: 11px; }
     .user-badge { font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; }
 
-    .admin-panel-box { border: 1.5px dashed var(--border); padding: 8px; border-radius: 10px; margin-bottom: 8px; background: var(--bg); max-height: 120px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .admin-panel-box { border: 1.5px dashed var(--border); padding: 8px; border-radius: 10px; margin-bottom: 8px; background: var(--bg); max-height: 100px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     .admin-user-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-bottom: 5px; background: var(--card); padding: 5px; border-radius: 6px; border: 1px solid var(--border); }
 
     .streak-box { background: var(--bg); border: 1px solid var(--border); padding: 8px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 600; }
@@ -122,9 +122,14 @@
     .iphone-stats-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 12px; padding: 8px; }
     .iphone-average-title { font-size: 9px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
     .iphone-average-value { font-size: 16px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
-    .chart-container { position: relative; height: 90px; width: 100%; }
+    .chart-container { position: relative; height: 75px; width: 100%; }
 
     .status-bar-box { background: var(--bg); border: 1px solid var(--border); padding: 6px 10px; border-radius: 8px; margin-bottom: 8px; display: flex; gap: 6px; align-items: center; font-size: 11px; }
+
+    /* AKILLI KOÇ PANEL STİLİ */
+    .coach-box { border: 1.5px solid var(--primary); background: var(--bg); padding: 8px; border-radius: 10px; margin-top: 8px; font-size: 11px; }
+    .coach-header { font-weight: 700; color: var(--primary); margin-bottom: 3px; display: flex; justify-content: space-between; align-items: center; }
+    .coach-msg { color: var(--text); font-style: italic; min-height: 25px; line-height: 1.2; }
   </style>
 </head>
 <body data-theme="light">
@@ -182,7 +187,7 @@
 
       <div class="chat-box" id="chatBox"></div>
       <div style="display:flex; gap:6px;">
-        <input type="text" id="msgInput" placeholder="Mesaj yaz..." style="padding: 10px; font-size: 14px;" onkeypress="if(event.key==='Enter') sendChat()">
+        <input type="text" id="msgInput" placeholder="Mesaj yaz veya soru sor..." style="padding: 10px; font-size: 14px;" onkeypress="if(event.key==='Enter') sendChat()">
         <button onclick="sendChat()" style="width:65px; padding: 10px; font-size: 12px;">Gönder</button>
       </div>
     </div>
@@ -200,7 +205,7 @@
       <div class="leaderboard-list" id="leaderboardList"></div>
     </div>
 
-    <!-- EKRAN SÜRESİ & KRONOMETRE / SAYAÇ -->
+    <!-- EKRAN SÜRESİ, SAYAÇ & AKILLI KOÇ -->
     <div class="panel">
       <h3>📊 Ekran Süresi & Sayaç</h3>
       <p class="subtitle">Süre yönetimi.</p>
@@ -238,11 +243,20 @@
       </div>
 
       <div class="iphone-stats-card">
-        <div class="iphone-average-title">Günlük Ortalama</div>
+        <div class="iphone-average-title">Günlük Ortalama (Canlı Takip Aktif)</div>
         <div class="iphone-average-value" id="avgDisplay">0 dk</div>
         <div class="chart-container">
           <canvas id="iphoneBarChart"></canvas>
         </div>
+      </div>
+
+      <!-- AKILLI KOÇ KUTUSU -->
+      <div class="coach-box">
+        <div class="coach-header">
+          <span>🤖 Akıllı Koç</span>
+          <button onclick="triggerSmartCoach()" style="width: auto; padding: 2px 6px; font-size: 9px; background: var(--primary);">Analiz Et</button>
+        </div>
+        <div class="coach-msg" id="coachMessageText">Uygulamayı açık tuttuğun sürece her saniye ekran süreni kaydediyorum. Hadi bakalım, kolay gelsin!</div>
       </div>
     </div>
 
@@ -263,7 +277,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       const savedTheme = localStorage.getItem("app_theme") || "light";
-      document.body.setAttribute("data-theme", savedTheme);
+      body.setAttribute("data-theme", savedTheme); // fixed
       checkNotificationStatus();
       changeTimerMode();
       if (currentUserName) {
@@ -308,6 +322,9 @@
     let initialCountdownSeconds = 0;
     let myChart = null;
     let lastSeenMsgId = 0;
+
+    // GERÇEK ZAMANLI EKRAN SÜRESİ DEĞİŞKENLERİ
+    let realTimeSecondsAccumulator = 0;
 
     async function checkAdminStatus(name) {
       let { data: user } = await _supabase.from('app_users').select('is_admin').eq('name', name).maybeSingle();
@@ -398,6 +415,7 @@
       }
 
       initApp();
+      startRealTimeScreenTracker();
     }
 
     function logout() {
@@ -422,6 +440,50 @@
         loadLeaderboard();
         if (isAdmin) loadAdminPanelUsers();
       }, 3000);
+    }
+
+    // GERÇEK ZAMANLI EKRAN SÜRESİ TAKİPÇİSİ (Arka planda saniye saniye işler)
+    function startRealTimeScreenTracker() {
+      setInterval(() => {
+        // Eğer sekme aktifse ve kullanıcı uygulamadaysa say
+        if (!document.hidden && currentUserName) {
+          realTimeSecondsAccumulator++;
+          // Her 60 saniyede bir veritabanına otomatik 1 dakika "Eğlence/Genel" veya aktif kategori olarak kaydet
+          if (realTimeSecondsAccumulator >= 60) {
+            realTimeSecondsAccumulator = 0;
+            saveTimeLog('Eglence', 1); // Varsayılan arka plan süresi eğlence/genel kullanım sayılır
+          }
+        }
+      }, 1000);
+    }
+
+    // AKILLI KOÇ ANALİZ FONKSİYONU (Tatlı sert laf sokma & analiz)
+    async function triggerSmartCoach() {
+      const { data } = await _supabase.from('time_logs').select('activity_type, duration_minutes').eq('email', currentUserName);
+      let dersTotal = 0;
+      let eglenceTotal = 0;
+
+      if (data) {
+        data.forEach(l => {
+          if (l.activity_type === 'Ders') dersTotal += l.duration_minutes;
+          else eglenceTotal += l.duration_minutes;
+        });
+      }
+
+      const coachEl = document.getElementById("coachMessageText");
+      let msg = "";
+
+      if (eglenceTotal > dersTotal && eglenceTotal > 30) {
+        msg = `Oha! Eğlence süren (${eglenceTotal} dk) ders süresini (${dersTotal} dk) sollamış gitmiş! Bağımlı olmaaaa, kapat şu oyunu da dersin başına geç!`;
+      } else if (dersTotal > eglenceTotal) {
+        msg = `Helal olsun, ders süren (${dersTotal} dk) gayet iyi gidiyor. Böyle devam edersen sırtın yere gelmez!`;
+      } else if (eglenceTotal === 0 && dersTotal === 0) {
+        msg = `Hâlâ tık yok! Uygulamayı açtın ama ne ders var ne eğlence. Boş boş oturma, bir yerden başla artık!`;
+      } else {
+        msg = `Durumlar dengeli görünüyor ama ipin ucunu kaçırma, eğlenceye çok dalıyorsun gibi. Dikkat et!`;
+      }
+
+      coachEl.textContent = msg;
     }
 
     async function updateMyStatus(statusText) {
