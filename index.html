@@ -345,7 +345,6 @@
       if (confirm(`${name} adlı kullanıcıyı tamamen silmek ve banlamak istediğine emin misin?`)) {
         await _supabase.from('app_users').delete().eq('name', name);
         await _supabase.from('time_logs').delete().eq('email', name);
-        // Mesajları hem email hem de text içindeki olası durumlara göre veya doğrudan adına göre temizle
         await _supabase.from('messages').delete().eq('email', name);
         
         loadAdminPanelUsers();
@@ -353,6 +352,12 @@
         loadMessages();
       }
     }
+
+    async function deleteSingleMessage(msgId) {
+      await _supabase.from('messages').delete().eq('id', msgId);
+      loadMessages();
+    }
+
     function switchChatMode(partnerName) {
       activeChatPartner = partnerName === 'general' ? null : partnerName;
       document.getElementById("chatHeaderTitle").textContent = activeChatPartner ? `🔒 ${activeChatPartner}` : "💬 Genel Sohbet";
@@ -366,7 +371,6 @@
       const { data } = await _supabase.from('messages').select('*').order('id', { ascending: true });
       if (!data) return;
 
-      // WhatsApp tarzı anlık bildirim kontrolü
       if (data.length > 0) {
         const latestMsg = data[data.length - 1];
         if (lastSeenMsgId !== 0 && latestMsg.id > lastSeenMsgId && latestMsg.email !== currentUserName) {
@@ -397,7 +401,10 @@
           const isMe = m.email === currentUserName;
           const div = document.createElement("div");
           div.className = `msg ${isMe ? 'me' : ''}`;
-          div.innerHTML = `<span class="msg-sender" onclick="switchChatMode('${m.email}')">${m.email}</span>${m.text}`;
+          
+          let deleteBtn = isAdmin ? ` <button onclick="deleteSingleMessage(${m.id})" style="background:none; border:none; color:red; cursor:pointer; font-size:10px; margin-left:5px; font-weight:700;">[Sil]</button>` : "";
+          div.innerHTML = `<span class="msg-sender" onclick="switchChatMode('${m.email}')">${m.email}</span>${m.text}${deleteBtn}`;
+          
           chatBox.appendChild(div);
         }
       });
