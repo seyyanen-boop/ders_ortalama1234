@@ -284,7 +284,17 @@
       loadMessages();
       loadLeaderboard();
       loadStats();
-      setInterval(() => {
+      setInterval(async () => {
+        // Oturumu açık olan normal kullanıcı banlandıysa anında dışarı atar
+        if (currentUserName && !isAdmin) {
+          let { data: checkUser } = await _supabase.from('app_users').select('name').eq('name', currentUserName).maybeSingle();
+          if (!checkUser) {
+            alert("Hesabınız yönetici tarafından kaldırıldı / banlandı.");
+            logout();
+            return;
+          }
+        }
+
         loadMessages();
         loadLeaderboard();
         if (isAdmin) loadAdminPanelUsers();
@@ -320,18 +330,13 @@
 
     async function banUser(name) {
       if (confirm(`${name} adlı kullanıcıyı tamamen silmek ve banlamak istediğine emin misin?`)) {
-        // 1. app_users tablosundan sil
         await _supabase.from('app_users').delete().eq('name', name);
-        // 2. time_logs tablosundaki sürelerini sil
         await _supabase.from('time_logs').delete().eq('email', name);
-        // 3. messages tablosundaki mesajlarını sil
         await _supabase.from('messages').delete().eq('email', name);
         
         loadAdminPanelUsers();
         loadLeaderboard();
         loadMessages();
-      
-    
       }
     }
 
