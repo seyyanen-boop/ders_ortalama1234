@@ -7,7 +7,7 @@
 
   <!-- OTOMATİK GÜNCELLEME KONTROLÜ -->
   <script>
-    const CURRENT_VERSION = "1.6.2"; 
+    const CURRENT_VERSION = "1.6.3"; 
 
     async function checkForUpdates() {
       try {
@@ -126,7 +126,7 @@
 
     .status-bar-box { background: var(--bg); border: 1px solid var(--border); padding: 6px 10px; border-radius: 8px; margin-bottom: 8px; display: flex; gap: 6px; align-items: center; font-size: 11px; }
 
-    /* GEMİNİ KOÇ PANELİ */
+    /* KOÇ PANELİ */
     .coach-box { border: 1.5px solid var(--primary); background: var(--bg); padding: 8px; border-radius: 10px; font-size: 11px; }
     .coach-header { font-weight: 700; color: var(--primary); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
     .coach-msg { color: var(--text); font-style: italic; min-height: 25px; line-height: 1.3; margin-bottom: 6px; max-height: 90px; overflow-y: auto; }
@@ -206,7 +206,7 @@
       <div class="leaderboard-list" id="leaderboardList"></div>
     </div>
 
-    <!-- EKRAN SÜRESİ, SAYAÇ & GEMİNİ KOÇ -->
+    <!-- EKRAN SÜRESİ, SAYAÇ & KOÇ -->
     <div class="panel">
       <h3>📊 Ekran Süresi & Sayaç</h3>
       <p class="subtitle">Süre yönetimi.</p>
@@ -251,13 +251,13 @@
         </div>
       </div>
 
-      <!-- GEMİNİ KOÇ KUTUSU -->
+      <!-- OPENROUTER KOÇ KUTUSU -->
       <div class="coach-box">
         <div class="coach-header">
-          <span>🤖 Gemini Koç (Aktif)</span>
+          <span>🤖 Akıllı Koç (OpenRouter Aktif)</span>
           <button onclick="askGeminiCoach('durumumu analiz et')" style="width: auto; padding: 2px 6px; font-size: 9px; background: var(--primary);">Analiz Et</button>
         </div>
-        <div class="coach-msg" id="coachMessageText">API Key entegre edildi. Bana dilediğini sorabilirsin; doğrudan verilerinle ve tarzımla buradayım!</div>
+        <div class="coach-msg" id="coachMessageText">OpenRouter API Key başarıyla entegre edildi. Hazırım!</div>
         <div class="coach-input-row">
           <input type="text" id="coachQuestionInput" placeholder="Koça bir şeyler sor..." style="padding: 6px; font-size: 11px;" onkeypress="if(event.key==='Enter') askGeminiCoach()">
           <button onclick="askGeminiCoach()" style="width: 55px; padding: 6px; font-size: 11px;">Sor</button>
@@ -317,8 +317,8 @@
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const WEB3FORMS_KEY = "387c3113-1e0f-4f5c-ad17-4bf2a9ca3170"; 
     
-    // Temizlenmiş Sabit API Key Entegrasyonu
-    const HARDCODED_GEMINI_KEY = "AQ.Ab8RN6K53TkHBTvD4VKCBqTtWz5AwTaQa7DAtHnpNPnKioFB1g";
+    // OpenRouter API Key Entegrasyonu
+    const OPENROUTER_API_KEY = "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";
     
     let currentUserName = localStorage.getItem("chat_username") || "";
     let isAdmin = false;
@@ -461,7 +461,7 @@
       }, 1000);
     }
 
-    // GEMİNİ API BAĞLANTISI
+    // OPENROUTER API BAĞLANTISI
     async function askGeminiCoach(customPrompt = null) {
       const coachEl = document.getElementById("coachMessageText");
       const inputEl = document.getElementById("coachQuestionInput");
@@ -485,21 +485,26 @@
       const systemPrompt = `Sen bu uygulamanın içindeki samimi, zeki, esprili ve gerektiğinde tatlı sert laf sokan bir yapay zeka koçusun. Kullanıcının adı: ${currentUserName}. Anlık istatistikleri: ${dersTotal} dakika ders, ${eglenceTotal} dakika eğlence/ekran süresi. Yanıtların doğal, tekrara düşmeyen, akıllıca ve tam bir arkadaş tonunda olsun.`;
 
       try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${HARDCODED_GEMINI_KEY}`, {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify({
-            contents: [
-              { role: "user", parts: [{ text: systemPrompt + "\n\nKullanıcının mesajı/talebi: " + userQuery }] }
+            model: "deepseek/deepseek-chat", // Veya uygun bir açık model
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userQuery }
             ]
           })
         });
 
         const resData = await response.json();
-        if (resData.candidates && resData.candidates[0].content.parts[0].text) {
-          coachEl.textContent = resData.candidates[0].content.parts[0].text;
+        if (resData.choices && resData.choices[0].message.content) {
+          coachEl.textContent = resData.choices[0].message.content;
         } else {
-          coachEl.textContent = "API'den anlamlı bir yanıt alamadım.";
+          coachEl.textContent = "OpenRouter'dan yanıt alınamadı.";
         }
       } catch (err) {
         console.error(err);
