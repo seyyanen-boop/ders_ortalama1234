@@ -277,7 +277,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       const savedTheme = localStorage.getItem("app_theme") || "light";
-      body.setAttribute("data-theme", savedTheme); // fixed
+      document.body.setAttribute("data-theme", savedTheme);
       checkNotificationStatus();
       changeTimerMode();
       if (currentUserName) {
@@ -323,7 +323,6 @@
     let myChart = null;
     let lastSeenMsgId = 0;
 
-    // GERÇEK ZAMANLI EKRAN SÜRESİ DEĞİŞKENLERİ
     let realTimeSecondsAccumulator = 0;
 
     async function checkAdminStatus(name) {
@@ -442,22 +441,18 @@
       }, 3000);
     }
 
-    // GERÇEK ZAMANLI EKRAN SÜRESİ TAKİPÇİSİ (Arka planda saniye saniye işler)
     function startRealTimeScreenTracker() {
       setInterval(() => {
-        // Eğer sekme aktifse ve kullanıcı uygulamadaysa say
         if (!document.hidden && currentUserName) {
           realTimeSecondsAccumulator++;
-          // Her 60 saniyede bir veritabanına otomatik 1 dakika "Eğlence/Genel" veya aktif kategori olarak kaydet
           if (realTimeSecondsAccumulator >= 60) {
             realTimeSecondsAccumulator = 0;
-            saveTimeLog('Eglence', 1); // Varsayılan arka plan süresi eğlence/genel kullanım sayılır
+            saveTimeLog('Eglence', 1);
           }
         }
       }, 1000);
     }
 
-    // AKILLI KOÇ ANALİZ FONKSİYONU (Tatlı sert laf sokma & analiz)
     async function triggerSmartCoach() {
       const { data } = await _supabase.from('time_logs').select('activity_type, duration_minutes').eq('email', currentUserName);
       let dersTotal = 0;
