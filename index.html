@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Giriş & Kayıt Sistemi</title>
+  <title>Onaylı Giriş Sistemi</title>
+  <link rel="manifest" href="/manifest.json">
+  
+  <!-- Supabase Kütüphanesi (Sitenin veritabanıyla konuşmasını sağlar) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     :root {
       --primary-color: #4f46e5;
@@ -20,7 +25,7 @@
     .subtitle { color: var(--text-muted); font-size: 14px; text-align: center; margin-bottom: 24px; }
     .form-group { margin-bottom: 20px; }
     label { display: block; font-size: 14px; color: var(--text-color); margin-bottom: 6px; font-weight: 500; }
-    input[type="email"], input[type="text"], input[type="password"] { width: 100%; padding: 12px 16px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 15px; outline: none; }
+    input[type="email"], input[type="password"] { width: 100%; padding: 12px 16px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 15px; outline: none; }
     input:focus { border-color: var(--primary-color); }
     .remember-me { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 24px; cursor: pointer; }
     button { width: 100%; padding: 14px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
@@ -28,23 +33,28 @@
     .switch-form { text-align: center; margin-top: 24px; font-size: 14px; color: var(--text-muted); }
     .switch-form a { color: var(--primary-color); text-decoration: none; font-weight: 600; }
     .hidden { display: none; }
+    .alert { padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; text-align: center; display: none; }
+    .alert-error { background-color: #fee2e2; color: #991b1b; }
+    .alert-success { background-color: #d1fae5; color: #065f46; }
   </style>
 </head>
 <body>
 
   <div class="container">
+    <div id="alertBox" class="alert"></div>
+
     <!-- GİRİŞ FORMU -->
     <div id="loginFormContainer">
-      <h2>Tekrar Hoş Geldiniz</h2>
-      <p class="subtitle">Lütfen hesabınıza giriş yapın.</p>
-      <form onsubmit="event.preventDefault(); alert('Giriş sistemi henüz veritabanına bağlı değil!');">
+      <h2>Giriş Yap</h2>
+      <p class="subtitle">Lütfen bilgilerinizi girin.</p>
+      <form id="loginForm" onsubmit="handleLogin(event)">
         <div class="form-group">
           <label>E-posta</label>
           <input type="email" id="loginEmail" required placeholder="ornek@mail.com">
         </div>
         <div class="form-group">
           <label>Şifre</label>
-          <input type="password" required placeholder="••••••••">
+          <input type="password" id="loginPassword" required placeholder="••••••••">
         </div>
         <label class="remember-me">
           <input type="checkbox" id="rememberMe"> Beni Hatırla
@@ -52,36 +62,38 @@
         <button type="submit">Giriş Yap</button>
       </form>
       <div class="switch-form">
-        Hesabınız yok mu? <a href="#" onclick="document.getElementById('loginFormContainer').classList.add('hidden'); document.getElementById('registerFormContainer').classList.remove('hidden');">Kayıt Ol</a>
+        Hesabınız yok mu? <a href="#" onclick="toggleForm('register')">Kayıt Ol</a>
       </div>
     </div>
 
     <!-- KAYIT FORMU -->
     <div id="registerFormContainer" class="hidden">
-      <h2>Kayıt Olun</h2>
-      <p class="subtitle">Yönetici onayından sonra giriş yapabilirsiniz.</p>
-      <form onsubmit="event.preventDefault(); alert('Kayıt başvurunuz alındı! Yönetici onayı bekliyor.');">
-        <div class="form-group">
-          <label>Ad Soyad</label>
-          <input type="text" required placeholder="Ahmet Yılmaz">
-        </div>
+      <h2>Kayıt Başvurusu</h2>
+      <p class="subtitle font-weight: normal;">Yönetici onayından sonra giriş yapabilirsiniz.</p>
+      <form id="registerForm" onsubmit="handleRegister(event)">
         <div class="form-group">
           <label>E-posta</label>
-          <input type="email" required placeholder="ornek@mail.com">
+          <input type="email" id="regEmail" required placeholder="ornek@mail.com">
         </div>
         <div class="form-group">
           <label>Şifre</label>
-          <input type="password" required placeholder="••••••••">
+          <input type="password" id="regPassword" required placeholder="••••••••">
         </div>
         <button type="submit">Kayıt Başvurusu Yap</button>
       </form>
       <div class="switch-form">
-        Zaten hesabınız var mı? <a href="#" onclick="document.getElementById('registerFormContainer').classList.add('hidden'); document.getElementById('loginFormContainer').classList.remove('hidden');">Giriş Yap</a>
+        Zaten hesabınız var mı? <a href="#" onclick="toggleForm('login')">Giriş Yap</a>
       </div>
     </div>
   </div>
 
   <script>
+    // --- SUPABASE BAĞLANTISI ---
+    const SUPABASE_URL = "https://yqhdgogfxcycjilfillb.supabase.co"; // İşte kopyaladığın URL burada işe yarıyor!
+    const SUPABASE_ANON_KEY = "sb_publishable_aJVa7IVB6HfcQYug4JNeow_RwnGZaB7"; // Kopyaladığın o uzun anon public anahtarını buraya yapıştır!
+
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
     // Sayfa açıldığında "Beni Hatırla" kontrolü
     document.addEventListener("DOMContentLoaded", () => {
       const savedEmail = localStorage.getItem("rememberedEmail");
@@ -90,6 +102,97 @@
         document.getElementById("rememberMe").checked = true;
       }
     });
+
+    function toggleForm(formType) {
+      hideAlert();
+      if (formType === 'register') {
+        document.getElementById('loginFormContainer').classList.add('hidden');
+        document.getElementById('registerFormContainer').classList.remove('hidden');
+      } else {
+        document.getElementById('registerFormContainer').classList.add('hidden');
+        document.getElementById('loginFormContainer').classList.remove('hidden');
+      }
+    }
+
+    function showAlert(msg, type) {
+      const box = document.getElementById("alertBox");
+      box.textContent = msg;
+      box.className = `alert alert-${type}`;
+      box.style.display = 'block';
+    }
+
+    function hideAlert() {
+      document.getElementById("alertBox").style.display = 'none';
+    }
+
+    // --- GİRİŞ İŞLEMİ VE ONAY KONTROLÜ ---
+    async function handleLogin(e) {
+      e.preventDefault();
+      hideAlert();
+
+      const email = document.getElementById("loginEmail").value;
+      const password = document.getElementById("loginPassword").value;
+      const rememberMe = document.getElementById("rememberMe").checked;
+
+      if (rememberMe) {
+        localStorage.setItem("rememberedEmail", email);
+      } else {
+        localStorage.removeItem("rememberedEmail");
+      }
+
+      // 1. Supabase ile kullanıcı girişi dene
+      const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        showAlert("Giriş Başarısız: " + error.message, "error");
+        return;
+      }
+
+      const user = data.user;
+
+      // 2. Kullanıcının onaylanıp onaylanmadığını (is_approved) kontrol et
+      const { data: profile, error: profileError } = await _supabase
+        .from('profiles')
+        .select('is_approved')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile) {
+        showAlert("Kullanıcı profili bulunamadı.", "error");
+        await _supabase.auth.signOut();
+        return;
+      }
+
+      if (profile.is_approved === false) {
+        showAlert("Giriş engellendi! Hesabınız henüz yönetici tarafından onaylanmamış.", "error");
+        // Onaylanmadıysa oturumu hemen kapatıyoruz ki içeri sızamasın
+        await _supabase.auth.signOut();
+      } else {
+        showAlert("Giriş başarılı! Uygulamaya yönlendiriliyorsunuz...", "success");
+        // Giriş başarılı olduktan sonra yönlendirmek istediğin sayfa linkini buraya yazabilirsin:
+        // window.location.href = "/anasayfa.html";
+      }
+    }
+
+    // --- KAYIT BAŞVURUSU İŞLEMİ ---
+    async function handleRegister(e) {
+      e.preventDefault();
+      hideAlert();
+
+      const email = document.getElementById("regEmail").value;
+      const password = document.getElementById("regPassword").value;
+
+      // Supabase'e yeni kullanıcı kaydet
+      const { data, error } = await _supabase.auth.signUp({ email, password });
+
+      if (error) {
+        showAlert("Kayıt Hatası: " + error.message, "error");
+      } else {
+        showAlert("Kayıt başvurusu başarılı! Yönetici onayından sonra giriş yapabilirsiniz.", "success");
+        document.getElementById("registerForm").reset();
+        setTimeout(() => { toggleForm('login'); }, 4000);
+      }
+    }
   </script>
 </body>
 </html>
