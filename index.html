@@ -180,19 +180,20 @@
         </select>
       </div>
 
-      <div id="customMinuteBox" style="margin-bottom: 6px; display: none;">
-        <label style="font-size: 10px;">Kaç dakika çalışacaksın?</label>
-        <input type="number" id="targetMinutesInput" value="25" min="1" max="300" style="padding: 6px; font-size: 12px;">
-      </div>
-
       <div class="timer-grid">
         <div class="timer-card">
           <span class="timer-label" style="color: #059669;">📚 Ders</span>
+          <div id="countdownBox-Ders" style="margin-bottom: 4px; display: none;">
+            <input type="number" id="targetMinutes-Ders" value="25" min="1" max="300" style="padding: 4px; font-size: 11px; text-align: center;" placeholder="Dk">
+          </div>
           <div class="timer-time" id="time-Ders">00:00</div>
           <button id="btn-Ders" class="btn-timer btn-ders" onclick="toggleTimer('Ders')">Başlat</button>
         </div>
         <div class="timer-card">
           <span class="timer-label" style="color: #e11d48;">🎮 Eğlence</span>
+          <div id="countdownBox-Eglence" style="margin-bottom: 4px; display: none;">
+            <input type="number" id="targetMinutes-Eglence" value="30" min="1" max="300" style="padding: 4px; font-size: 11px; text-align: center;" placeholder="Dk">
+          </div>
           <div class="timer-time" id="time-Eglence">00:00</div>
           <button id="btn-Eglence" class="btn-timer btn-eglence" onclick="toggleTimer('Eglence')">Başlat</button>
         </div>
@@ -539,11 +540,15 @@
     function changeTimerMode() {
       if (activeType) toggleTimer(activeType);
       const mode = document.getElementById("timerModeSelect").value;
-      const customBox = document.getElementById("customMinuteBox");
+      const boxDers = document.getElementById("countdownBox-Ders");
+      const boxEglence = document.getElementById("countdownBox-Eglence");
+      
       if (mode === 'countdown') {
-        customBox.style.display = "block";
+        boxDers.style.display = "block";
+        boxEglence.style.display = "block";
       } else {
-        customBox.style.display = "none";
+        boxDers.style.display = "none";
+        boxEglence.style.display = "none";
       }
     }
 
@@ -578,7 +583,7 @@
         secondsElapsed = 0;
         
         if (mode === 'countdown') {
-          const userMins = parseInt(document.getElementById("targetMinutesInput").value) || 25;
+          const userMins = parseInt(document.getElementById(`targetMinutes-${type}`).value) || 25;
           initialCountdownSeconds = userMins * 60;
           timerRemainingSeconds = initialCountdownSeconds;
         }
