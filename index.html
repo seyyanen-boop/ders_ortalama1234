@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Onaylı Giriş Sistemi</title>
   <link rel="manifest" href="/manifest.json">
-  
-  <!-- Supabase Kütüphanesi (Sitenin veritabanıyla konuşmasını sağlar) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -69,7 +67,7 @@
     <!-- KAYIT FORMU -->
     <div id="registerFormContainer" class="hidden">
       <h2>Kayıt Başvurusu</h2>
-      <p class="subtitle font-weight: normal;">Yönetici onayından sonra giriş yapabilirsiniz.</p>
+      <p class="subtitle">Yönetici onayından sonra giriş yapabilirsiniz.</p>
       <form id="registerForm" onsubmit="handleRegister(event)">
         <div class="form-group">
           <label>E-posta</label>
@@ -88,13 +86,13 @@
   </div>
 
   <script>
-    // --- SUPABASE BAĞLANTISI ---
-    const SUPABASE_URL = "https://yqhdgogfxcycjilfillb.supabase.co"; // İşte kopyaladığın URL burada işe yarıyor!
-    const SUPABASE_ANON_KEY = "sb_publishable_aJVa7IVB6HfcQYug4JNeow_RwnGZaB7"; // Kopyaladığın o uzun anon public anahtarını buraya yapıştır!
+    // --- BAĞLANTI AYARLARI ---
+    const SUPABASE_URL = "https://yqhdgogfxcycjilfillb.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_aJVa7IVB6HfcQYug4JNeow_RwnGZaB7"; // Supabase'deki anon public key değerini buraya yapıştır!
+    const WEB3FORMS_KEY = "387c3113-1e0f-4f5c-ad17-4bf2a9ca3170"; // Saniyeler içinde aldığın mail anahtarı eklendi!
 
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Sayfa açıldığında "Beni Hatırla" kontrolü
     document.addEventListener("DOMContentLoaded", () => {
       const savedEmail = localStorage.getItem("rememberedEmail");
       if (savedEmail) {
@@ -125,7 +123,7 @@
       document.getElementById("alertBox").style.display = 'none';
     }
 
-    // --- GİRİŞ İŞLEMİ VE ONAY KONTROLÜ ---
+    // --- GİRİŞ KONTROLÜ ---
     async function handleLogin(e) {
       e.preventDefault();
       hideAlert();
@@ -140,7 +138,6 @@
         localStorage.removeItem("rememberedEmail");
       }
 
-      // 1. Supabase ile kullanıcı girişi dene
       const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
@@ -150,7 +147,7 @@
 
       const user = data.user;
 
-      // 2. Kullanıcının onaylanıp onaylanmadığını (is_approved) kontrol et
+      // Yönetici Onay Durumu Kontrolü
       const { data: profile, error: profileError } = await _supabase
         .from('profiles')
         .select('is_approved')
@@ -158,23 +155,20 @@
         .single();
 
       if (profileError || !profile) {
-        showAlert("Kullanıcı profili bulunamadı.", "error");
+        showAlert("Profil doğrulanırken hata oluştu.", "error");
         await _supabase.auth.signOut();
         return;
       }
 
       if (profile.is_approved === false) {
         showAlert("Giriş engellendi! Hesabınız henüz yönetici tarafından onaylanmamış.", "error");
-        // Onaylanmadıysa oturumu hemen kapatıyoruz ki içeri sızamasın
         await _supabase.auth.signOut();
       } else {
-        showAlert("Giriş başarılı! Uygulamaya yönlendiriliyorsunuz...", "success");
-        // Giriş başarılı olduktan sonra yönlendirmek istediğin sayfa linkini buraya yazabilirsin:
-        // window.location.href = "/anasayfa.html";
+        showAlert("Giriş başarılı! Giriş yapıldı.", "success");
       }
     }
 
-    // --- KAYIT BAŞVURUSU İŞLEMİ ---
+    // --- KAYIT VE MAİL BİLDİRİM SÜRECİ ---
     async function handleRegister(e) {
       e.preventDefault();
       hideAlert();
@@ -182,16 +176,35 @@
       const email = document.getElementById("regEmail").value;
       const password = document.getElementById("regPassword").value;
 
-      // Supabase'e yeni kullanıcı kaydet
+      // 1. Supabase'e kayıt et
       const { data, error } = await _supabase.auth.signUp({ email, password });
 
       if (error) {
         showAlert("Kayıt Hatası: " + error.message, "error");
-      } else {
-        showAlert("Kayıt başvurusu başarılı! Yönetici onayından sonra giriş yapabilirsiniz.", "success");
-        document.getElementById("registerForm").reset();
-        setTimeout(() => { toggleForm('login'); }, 4000);
+        return;
       }
+
+      // 2. Sana (Yöneticiye) E-posta Bildirimi Gönder
+      try {
+        await fetch("https://api.web3forms.com/submit", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({
+            access_key: WEB3FORMS_KEY,
+            subject: "🔔 Sitenizde Yeni Kayıt Başvurusu Var!",
+            message: `Yeni bir kullanıcı kayıt olmak istiyor.\n\nKullanıcı E-postası: ${email}\n\nBu kullanıcıyı onaylamak için Supabase paneline giriş yapıp profiles tablosundan is_approved değerini true yapabilirsiniz.`
+          })
+        });
+      } catch (err) {
+        console.log("Mail gönderiminde hata:", err);
+      }
+
+      showAlert("Kayıt başvurusu yapıldı ve yöneticiye mail gönderildi! Onay bekleyin.", "success");
+      document.getElementById("registerForm").reset();
+      setTimeout(() => { toggleForm('login'); }, 4000);
     }
   </script>
 </body>
