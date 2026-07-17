@@ -7,7 +7,7 @@
 
   <!-- OTOMATİK GÜNCELLEME KONTROLÜ -->
   <script>
-    const CURRENT_VERSION = "1.6.8"; 
+    const CURRENT_VERSION = "1.6.9"; 
 
     async function checkForUpdates() {
       try {
@@ -103,7 +103,11 @@
 
     .leaderboard-list { flex: 1; overflow-y: auto; border: 1.5px solid var(--border); border-radius: 10px; padding: 6px; background: var(--bg); max-height: 180px; -webkit-overflow-scrolling: touch; }
     .leaderboard-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-bottom: 1px solid var(--border); font-size: 11px; }
-    .user-badge { font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; }
+    .user-badge { font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+    .status-online { background-color: #10b981; box-shadow: 0 0 4px #10b981; }
+    .status-offline { background-color: #94a3b8; }
 
     .admin-panel-box { border: 1.5px dashed var(--border); padding: 8px; border-radius: 10px; margin-bottom: 8px; background: var(--bg); max-height: 160px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     .admin-user-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-bottom: 5px; background: var(--card); padding: 6px; border-radius: 6px; border: 1px solid var(--border); flex-wrap: wrap; gap: 4px; }
@@ -317,7 +321,6 @@
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const WEB3FORMS_KEY = "387c3113-1e0f-4f5c-ad17-4bf2a9ca3170"; 
     
-    // GROQ API Key Entegrasyonu
     const GROQ_API_KEY = "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";
     
     let currentUserName = localStorage.getItem("chat_username") || "";
@@ -421,6 +424,7 @@
 
       checkNotificationStatus();
       loadMyStatus();
+      updateHeartbeat();
 
       if (isAdmin) {
         document.getElementById("adminControlPanel").classList.remove("hidden");
@@ -436,17 +440,26 @@
       location.reload();
     }
 
+    async function updateHeartbeat() {
+      if (!currentUserName) return;
+      const nowIso = new Date().toISOString();
+      await _supabase.from('app_users').update({ last_seen: nowIso }).eq('name', currentUserName);
+    }
+
     function initApp() {
       loadMessages();
       loadLeaderboard();
       loadStats();
       setInterval(async () => {
-        if (currentUserName && !isAdmin) {
-          let { data: checkUser } = await _supabase.from('app_users').select('name').eq('name', currentUserName).maybeSingle();
-          if (!checkUser) {
-            alert("Hesabınız yönetici tarafından kaldırıldı / banlandı.");
-            logout();
-            return;
+        if (currentUserName) {
+          updateHeartbeat();
+          if (!isAdmin) {
+            let { data: checkUser } = await _supabase.from('app_users').select('name').eq('name', currentUserName).maybeSingle();
+            if (!checkUser) {
+              alert("Hesabınız yönetici tarafından kaldırıldı / banlandı.");
+              logout();
+              return;
+            }
           }
         }
         loadMessages();
@@ -691,7 +704,7 @@
     }
 
     async function loadLeaderboard() {
-      const { data: usersData } = await _supabase.from('app_users').select('name, is_admin, status_message');
+      const { data: usersData } = await _supabase.from('app_users').select('name, is_admin, status_message, last_seen');
       const { data: logsData } = await _supabase.from('time_logs').select('email, duration_minutes, created_at');
       const currentMonth = getCurrentMonthYear();
       const { data: goalsData } = await _supabase.from('monthly_goals').select('*').eq('month_year', currentMonth);
@@ -701,10 +714,21 @@
 
       let adminSet = new Set();
       let statusMap = {};
+      let onlineMap = {};
+      const now = new Date().getTime();
+
       if (usersData) {
         usersData.forEach(u => { 
           if (u.is_admin) adminSet.add(u.name); 
           statusMap[u.name] = u.status_message || "";
+          
+          if (u.last_seen) {
+            const lastSeenTime = new Date(u.last_seen).getTime();
+            // Son 15 saniye içinde sinyal verdiyse çevrimiçi say
+            onlineMap[u.name] = (now - lastSeenTime < 15000);
+          } else {
+            onlineMap[u.name] = false;
+          }
         });
       }
 
@@ -726,9 +750,7 @@
       if (currentUserName && goalMap[currentUserName]) {
         const targetMins = goalMap[currentUserName].target_minutes;
         const targetHours = (targetMins / 60).toFixed(1).replace('.0', '');
-        const currentMins = userMonthlyTotals[currentUserName] || 0;
-        const currentHours = (currentMins / 60).toFixed(1);
-        document.getElementById("goalDisplay").textContent = `🎯 Aylık Hedef: ${currentHours}/${targetHours} sa`;
+        document.getElementById("goalDisplay").textContent = `🎯 Aylık Hedef: ${targetHours} sa`;
       } else {
         document.getElementById("goalDisplay").textContent = `🎯 Aylık Hedef: Belirlenmedi`;
       }
@@ -742,22 +764,26 @@
 
         let tag = adminSet.has(name) ? ` <span class="admin-tag" style="font-size:8px;">ADMIN</span>` : "";
         let goldBadge = (goalMap[name] && goalMap[name].gold_won) ? ` <span style="background:#f59e0b; color:white; font-size:8px; padding:2px 4px; border-radius:4px; font-weight:700;">🏆 1 Gr Altın</span>` : "";
-        let statusSub = statusMap[name] ? `<div style="font-size:9px; color:var(--text-muted); font-weight:normal;">${statusMap[name]}</div>` : "";
+        
+        let isOnline = onlineMap[name] || false;
+        let dotClass = isOnline ? "status-dot status-online" : "status-dot status-offline";
+        let statusSub = statusMap[name] ? `<div style="font-size:9px; color:var(--text-muted); font-weight:normal; margin-top:1px;">${statusMap[name]}</div>` : "";
 
         let userGoalMins = (goalMap[name] && goalMap[name].target_minutes) ? goalMap[name].target_minutes : 0;
-        let userMonthlyMins = userMonthlyTotals[name] || 0;
         let goalInfoStr = "";
         if (userGoalMins > 0) {
-          let currH = (userMonthlyMins / 60).toFixed(1);
           let targH = (userGoalMins / 60).toFixed(1).replace('.0', '');
-          goalInfoStr = `<div style="font-size:9px; color:var(--primary); font-weight:600;">Hedef: ${currH}/${targH} sa</div>`;
+          goalInfoStr = `<div style="font-size:9px; color:var(--primary); font-weight:600; margin-top:1px;">Hedef: ${targH} sa</div>`;
         }
 
         const div = document.createElement("div");
         div.className = "leaderboard-item";
         div.innerHTML = `
           <div>
-            <span class="user-badge" onclick="switchChatMode('${name}')">👤 ${name}${tag}${goldBadge}</span>
+            <span class="user-badge" onclick="switchChatMode('${name}')">
+              <span class="${dotClass}" title="${isOnline ? 'Çevrimiçi' : 'Çevrimdışı'}"></span>
+              👤 ${name}${tag}${goldBadge}
+            </span>
             ${statusSub}
             ${goalInfoStr}
           </div>
