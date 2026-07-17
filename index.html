@@ -61,13 +61,22 @@
     .btn-eglence { background-color: var(--color-eglence); color: #fff1f2; }
     .btn-eglence:hover { background-color: #e11d48; }
     .btn-stop { background-color: #64748b; color: white; }
-    .btn-stop:hover { background-color: #475569; }
+    .btn-stop:hover { background-color: #475569; color: white; }
     
     /* iPhone Ekran Süresi İstatistik Kartı */
     .iphone-stats-card { background: #ffffff; border: 1.5px solid #f1f5f9; border-radius: 16px; padding: 16px; margin-bottom: 15px; }
     .iphone-average-title { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
     .iphone-average-value { font-size: 28px; font-weight: 800; color: var(--text); margin-top: 2px; margin-bottom: 15px; }
-    .chart-container { position: relative; height: 180px; width: 100%; }
+    .chart-container { position: relative; height: 180px; width: 100%; margin-bottom: 20px; }
+
+    /* Yeni Kategori Kırılım Kartları */
+    .category-breakdown-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid #f1f5f9; padding-top: 15px; }
+    .breakdown-card { display: flex; align-items: center; gap: 10px; }
+    .breakdown-indicator { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+    .breakdown-info { display: flex; flex-direction: column; }
+    .breakdown-label { font-size: 12px; font-weight: 700; color: #475569; }
+    .breakdown-value { font-size: 14px; font-weight: 800; color: var(--text); margin-top: 1px; }
+    .breakdown-percentage { font-size: 11px; color: var(--text-muted); font-weight: 500; }
   </style>
 </head>
 <body>
@@ -123,7 +132,7 @@
     <!-- SAĞ BLOK: IPHONE EKRAN SÜRESİ MANTIĞI -->
     <div class="panel">
       <h3>📊 Ekran Süresi & Takip</h3>
-      <p class="subtitle">iPhone tarzı haftalık dikey sütun analizi ve günlük ortalama.</p>
+      <p class="subtitle">iPhone tarzı haftalık dikey sütun analizi ve detaylı ortalamalar.</p>
       
       <div class="timer-grid">
         <!-- DERS SAYACI -->
@@ -143,12 +152,36 @@
 
       <!-- iPhone Tarzı Grafik ve Ortalama Kartı -->
       <div class="iphone-stats-card">
-        <div class="iphone-average-title">Günlük Ortalama</div>
-        <div class="iphone-average-value" id="avgDisplay">0 dık</div>
+        <div class="iphone-average-title">Toplam Günlük Ortalama</div>
+        <div class="iphone-average-value" id="avgDisplay">0 dk</div>
         
         <div class="chart-container">
           <canvas id="iphoneBarChart"></canvas>
         </div>
+
+        <!-- YENİ DETAYLI ORTALAMA DAĞILIM ALANI -->
+        <div class="category-breakdown-grid">
+          <!-- Ders Dağılımı -->
+          <div class="breakdown-card">
+            <div class="breakdown-indicator" style="background-color: var(--color-ders);"></div>
+            <div class="breakdown-info">
+              <span class="breakdown-label">📚 Ders Çalışma</span>
+              <span class="breakdown-value" id="avgDersDisplay">0 dk</span>
+              <span class="breakdown-percentage" id="pctDersDisplay">%0</span>
+            </div>
+          </div>
+          
+          <!-- Eğlence Dağılımı -->
+          <div class="breakdown-card">
+            <div class="breakdown-indicator" style="background-color: var(--color-eglence);"></div>
+            <div class="breakdown-info">
+              <span class="breakdown-label">🎮 Eğlence & Sosyal</span>
+              <span class="breakdown-value" id="avgEglenceDisplay">0 dk</span>
+              <span class="breakdown-percentage" id="pctEglenceDisplay">%0</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -157,13 +190,12 @@
   <script>
     // --- SUPABASE & API CONFIG ---
     const SUPABASE_URL = "https://yqhdgogfxcycjilfillb.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_aJVa7IVB6HfcQYug4JNeow_RwnGZaB7"; // Otomatik yerleştirilen anahtarın
+    const SUPABASE_ANON_KEY = "sb_publishable_aJVa7IVB6HfcQYug4JNeow_RwnGZaB7";
     const WEB3FORMS_KEY = "387c3113-1e0f-4f5c-ad17-4bf2a9ca3170";
 
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let currentUserEmail = "";
     
-    // Sayaç Motoru Değişkenleri
     let activeType = null;
     let timerInterval = null;
     let secondsElapsed = 0;
@@ -286,7 +318,7 @@
       
       if (activeType === type) {
         clearInterval(timerInterval);
-        const minutesTracked = Math.round(secondsElapsed / 60) || 1; // Testleri kolaylaştırmak için saniyeyi en az 1 dk sayar
+        const minutesTracked = Math.round(secondsElapsed / 60) || 1; 
         saveTimeLog(activeType, minutesTracked);
         
         targetBtn.textContent = "Başlat";
@@ -316,59 +348,70 @@
       loadStats();
     }
 
-    // --- IPHONE TARZI GÜNLÜK ORTALAMA VE HAFTALIK GRAFİK MOTORU ---
+    // --- SÜRE METNİ FORMATLAYICI ---
+    function formatMinutes(totalMins) {
+      if (totalMins >= 60) {
+        const saat = Math.floor(totalMins / 60);
+        const dakika = totalMins % 60;
+        return `${saat} sa ${dakika} dk`;
+      }
+      return `${totalMins} dk`;
+    }
+
+    // --- IPHONE TARZI HAFTALIK GRAFİK VE DETAYLI ORTALAMA HESAPLAMA ---
     async function loadStats() {
       const { data } = await _supabase.from('time_logs').select('created_at, activity_type, duration_minutes');
       
-      // Haftanın günleri dizisi (Pazartesiden başlıyor)
       const gunEtiketleri = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
-      
-      // Her gün için ayrı Ders ve Eğlence verilerini tutacak dizilerimiz
       let haftalikDers = [0, 0, 0, 0, 0, 0, 0];
       let haftalikEglence = [0, 0, 0, 0, 0, 0, 0];
       
-      let toplamDakika = 0;
-      // Benzersiz kaç gün boyunca kayıt girildiğini bulmak için Set kümesi (Ortalama hesabı için)
+      let toplamDersDakika = 0;
+      let toplamEglenceDakika = 0;
       let aktifGunler = new Set();
 
       if (data) {
         data.forEach(log => {
           const tarih = new Date(log.created_at);
-          // JavaScript'te 0=Pazar, 1=Pazartesi... Biz bunu 0=Pazartesi olacak şekilde kaydırıyoruz
           let gunIndex = tarih.getDay() - 1;
-          if (gunIndex === -1) gunIndex = 6; // Pazar gününü sona atıyoruz
+          if (gunIndex === -1) gunIndex = 6; 
 
           const dk = log.duration_minutes;
-          toplamDakika += dk;
           
-          // Günün tarihini string olarak (Yıl-Ay-Gün) Set'e ekliyoruz
           const tarihString = tarih.toISOString().split('T')[0];
           aktifGunler.add(tarihString);
 
           if (log.activity_type === 'Ders') {
             haftalikDers[gunIndex] += dk;
+            toplamDersDakika += dk;
           } else {
             haftalikEglence[gunIndex] += dk;
+            toplamEglenceDakika += dk;
           }
         });
       }
 
-      // iPhone tarzı günlük ortalamayı hesapla (Toplam süre / Kayıt girilen gün sayısı)
+      const toplamGenelDakika = toplamDersDakika + toplamEglenceDakika;
       const gunSayisi = aktifGunler.size || 1;
-      const gunlukOrtalama = Math.round(toplamDakika / gunSayisi);
-      
-      // Ekran süre metnini formatla (Örn: 1 sa 25 dk veya direkt 45 dk)
-      let ortalamaMetni = "";
-      if (gunlukOrtalama >= 60) {
-        const saat = Math.floor(gunlukOrtalama / 60);
-        const dakika = gunlukOrtalama % 60;
-        ortalamaMetni = `${saat} sa ${dakika} dk`;
-      } else {
-        ortalamaMetni = `${gunlukOrtalama} dk`;
-      }
-      document.getElementById("avgDisplay").textContent = ortalamaMetni;
 
-      // GRAFİK MOTORU (Dikey Üst Üste Yığılmış Sütun Grafik - Stacked Bar Chart)
+      // Ortalama Hesaplamaları
+      const gunlukOrtalamaGenel = Math.round(toplamGenelDakika / gunSayisi);
+      const gunlukOrtalamaDers = Math.round(toplamDersDakika / gunSayisi);
+      const gunlukOrtalamaEglence = Math.round(toplamEglenceDakika / gunSayisi);
+
+      // Yüzdelik Dağılımlar
+      const dersYuzde = toplamGenelDakika > 0 ? Math.round((toplamDersDakika / toplamGenelDakika) * 100) : 0;
+      const eglenceYuzde = toplamGenelDakika > 0 ? Math.round((toplamEglenceDakika / toplamGenelDakika) * 100) : 0;
+
+      // Arayüzü Güncelleme
+      document.getElementById("avgDisplay").textContent = formatMinutes(gunlukOrtalamaGenel);
+      document.getElementById("avgDersDisplay").textContent = formatMinutes(gunlukOrtalamaDers);
+      document.getElementById("avgEglenceDisplay").textContent = formatMinutes(gunlukOrtalamaEglence);
+      
+      document.getElementById("pctDersDisplay").textContent = `%${dersYuzde}`;
+      document.getElementById("pctEglenceDisplay").textContent = `%${eglenceYuzde}`;
+
+      // GRAFİK MOTORU
       const ctx = document.getElementById('iphoneBarChart').getContext('2d');
       
       if (myChart) {
@@ -384,14 +427,14 @@
               {
                 label: 'Ders Çalışma',
                 data: haftalikDers,
-                backgroundColor: '#34d399', // İnce iPhone Yeşili
+                backgroundColor: '#34d399',
                 borderRadius: 4,
                 borderSkipped: false
               },
               {
                 label: 'Eğlence & Sosyal Medya',
                 data: haftalikEglence,
-                backgroundColor: '#f43f5e', // İnce iPhone Pembesi
+                backgroundColor: '#f43f5e',
                 borderRadius: 4,
                 borderSkipped: false
               }
@@ -402,24 +445,24 @@
             maintainAspectRatio: false,
             scales: {
               x: {
-                stacked: true, // Üst üste yığma açık
-                grid: { display: false }, // Dik çizgileri gizle
+                stacked: true,
+                grid: { display: false },
                 border: { display: false },
                 ticks: { color: '#94a3b8', font: { size: 12, weight: '600' } }
               },
               y: {
-                stacked: true, // Üst üste yığma açık
-                grid: { color: '#f1f5f9' }, // İnce yatay çizgiler
+                stacked: true,
+                grid: { color: '#f1f5f9' },
                 border: { display: false },
                 ticks: {
                   color: '#94a3b8',
                   font: { size: 11 },
-                  callback: function(value) { return value + ' dk'; } // Yan tarafa dk yaz
+                  callback: function(value) { return value + ' dk'; }
                 }
               }
             },
             plugins: {
-              legend: { display: false }, // Üstteki buton etiketlerini gizle (iPhone tarzı sade olsun)
+              legend: { display: false },
               tooltip: {
                 callbacks: {
                   label: function(context) {
