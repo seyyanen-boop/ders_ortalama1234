@@ -88,11 +88,11 @@
     <div style="font-size:12px; color:#334155;" id="toastMessage"></div>
   </div>
 
-  <!-- GİRİŞ / KAYIT EKRANI -->
+  <!-- GİRİŞ / KAYIT VE ONAY EKRANI -->
   <div class="container" id="authContainer">
     <div id="alertBox" class="alert"></div>
     <h2 id="authTitle">Giriş Yap</h2>
-    <p class="subtitle" id="authSubtitle">Kullanıcı adın ve şifrenle giriş yap.</p>
+    <p class="subtitle" id="authSubtitle">Şifrenle giriş yap veya yeni hesap oluştur.</p>
     
     <form onsubmit="handleAuth(event)">
       <div class="form-group">
@@ -213,7 +213,7 @@
       isRegisterMode = !isRegisterMode;
       document.getElementById("alertBox").style.display = "none";
       document.getElementById("authTitle").textContent = isRegisterMode ? "Kayıt Ol" : "Giriş Yap";
-      document.getElementById("authSubtitle").textContent = isRegisterMode ? "Kendine yeni bir hesap oluştur." : "Kullanıcı adın ve şifrenle giriş yap.";
+      document.getElementById("authSubtitle").textContent = isRegisterMode ? "Hesap oluştur, onaylandıktan sonra girebilirsin." : "Şifrenle giriş yap.";
       document.getElementById("authBtn").textContent = isRegisterMode ? "Kayıt Ol" : "Giriş Yap";
       document.getElementById("toggleText").textContent = isRegisterMode ? "Zaten hesabın var mı?" : "Hesabın yok mu?";
       document.getElementById("toggleLink").textContent = isRegisterMode ? "Giriş Yap" : "Kayıt Ol";
@@ -232,19 +232,25 @@
           return;
         }
 
-        let { error } = await _supabase.from('app_users').insert([{ name: name, password: password }]);
+        // Yeni kayıt oluşturulurken 'approved' sütunu false (onay bekliyor) olarak eklenir
+        let { error } = await _supabase.from('app_users').insert([{ name: name, password: password, approved: false }]);
         if (error) {
           showAlert("Kayıt oluşturulurken hata oluştu.", 'error');
           return;
         }
 
-        localStorage.setItem("chat_username", name);
-        enterApp(name);
+        showAlert("Kayıt başarılı! Yönetici onayından sonra giriş yapabilirsin.", 'success');
       } else {
         let { data: user, error } = await _supabase.from('app_users').select('*').eq('name', name).single();
 
         if (!user || user.password !== password) {
           showAlert("Hatalı kullanıcı adı veya şifre!", 'error');
+          return;
+        }
+
+        // Onay kontrolü (Supabase tablosunda 'approved' alanı kontrol edilir)
+        if (user.approved === false) {
+          showAlert("Hesabınız henüz onaylanmadı. Lütfen yöneticinin onaylamasını bekleyin.", 'error');
           return;
         }
 
