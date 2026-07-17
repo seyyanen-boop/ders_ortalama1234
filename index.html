@@ -3,95 +3,159 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Onaylı Giriş Sistemi</title>
+  <title>Akıllı Çalışma ve Sohbet Alanı</title>
   <link rel="manifest" href="/manifest.json">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Ortalama Grafikleri İçin Chart.js kütüphanesi -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     :root {
-      --primary-color: #4f46e5;
+      --primary: #4f46e5;
       --primary-hover: #4338ca;
-      --bg-color: #f3f4f6;
-      --card-bg: #ffffff;
-      --text-color: #1f2937;
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --text: #1f2937;
       --text-muted: #6b7280;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-    body { background-color: var(--bg-color); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-    .container { background: var(--card-bg); padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); width: 100%; max-width: 400px; }
-    h2 { color: var(--text-color); margin-bottom: 8px; text-align: center; }
-    .subtitle { color: var(--text-muted); font-size: 14px; text-align: center; margin-bottom: 24px; }
-    .form-group { margin-bottom: 20px; }
-    label { display: block; font-size: 14px; color: var(--text-color); margin-bottom: 6px; font-weight: 500; }
-    input[type="email"], input[type="password"] { width: 100%; padding: 12px 16px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 15px; outline: none; }
-    input:focus { border-color: var(--primary-color); }
-    .remember-me { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 24px; cursor: pointer; }
-    button { width: 100%; padding: 14px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
+    body { background-color: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .container { background: var(--card); padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); width: 100%; max-width: 450px; }
+    .app-container { background: var(--bg); width: 100%; max-width: 900px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; border-radius: 16px; }
+    
+    /* Ortak Tasarımlar */
+    h2, h3 { margin-bottom: 10px; text-align: center; }
+    .subtitle { color: var(--text-muted); font-size: 14px; text-align: center; margin-bottom: 20px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-size: 14px; margin-bottom: 6px; font-weight: 500; }
+    input { width: 100%; padding: 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 15px; outline: none; }
+    input:focus { border-color: var(--primary); }
+    button { width: 100%; padding: 12px; background-color: var(--primary); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
     button:hover { background-color: var(--primary-hover); }
-    .switch-form { text-align: center; margin-top: 24px; font-size: 14px; color: var(--text-muted); }
-    .switch-form a { color: var(--primary-color); text-decoration: none; font-weight: 600; }
-    .hidden { display: none; }
+    .hidden { display: none !important; }
     .alert { padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; text-align: center; display: none; }
     .alert-error { background-color: #fee2e2; color: #991b1b; }
     .alert-success { background-color: #d1fae5; color: #065f46; }
+
+    /* Uygulama İçi Panel Tasarımları */
+    .panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
+    .chat-box { border: 1px solid #e5e7eb; height: 250px; overflow-y: auto; padding: 10px; border-radius: 8px; margin-bottom: 10px; background: #fafafa; }
+    .msg { margin-bottom: 8px; font-size: 14px; background: #e0e7ff; padding: 6px 10px; border-radius: 8px; width: fit-content; max-width: 85%; }
+    .msg.me { background: #d1fae5; margin-left: auto; }
+    .msg-sender { font-weight: bold; font-size: 11px; color: var(--text-muted); display: block; }
+    
+    /* Sayaç Tasarımları */
+    .timer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+    .timer-card { background: #f9fafb; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; text-align: center; }
+    .timer-time { font-size: 20px; font-weight: bold; margin: 5px 0; color: #111827; }
+    .btn-sm { padding: 6px; font-size: 12px; margin-top: 4px; }
+    .btn-ders { background-color: #10b981; }
+    .btn-tiktok { background-color: #ff0050; }
+    .btn-yt { background-color: #ff0000; }
+    .btn-oyun { background-color: #3b82f6; }
+    .chart-container { margin-top: 15px; height: 180px; }
   </style>
 </head>
 <body>
 
-  <div class="container">
+  <!-- ================= GİRİŞ PANELİ ================= -->
+  <div class="container" id="authContainer">
     <div id="alertBox" class="alert"></div>
 
-    <!-- GİRİŞ FORMU -->
     <div id="loginFormContainer">
       <h2>Giriş Yap</h2>
-      <p class="subtitle">Lütfen bilgilerinizi girin.</p>
+      <p class="subtitle">Sisteme erişmek için bilgilerinizi girin.</p>
       <form id="loginForm" onsubmit="handleLogin(event)">
-        <div class="form-group">
-          <label>E-posta</label>
-          <input type="email" id="loginEmail" required placeholder="ornek@mail.com">
-        </div>
-        <div class="form-group">
-          <label>Şifre</label>
-          <input type="password" id="loginPassword" required placeholder="••••••••">
-        </div>
-        <label class="remember-me">
-          <input type="checkbox" id="rememberMe"> Beni Hatırla
+        <div class="form-group"><label>E-posta</label><input type="email" id="loginEmail" required placeholder="ornek@mail.com"></div>
+        <div class="form-group"><label>Şifre</label><input type="password" id="loginPassword" required placeholder="••••••••"></div>
+        <label style="display:flex; align-items:center; gap:8px; font-size:14px; margin-bottom:15px; cursor:pointer;">
+          <input type="checkbox" id="rememberMe" style="width:auto;"> Beni Hatırla
         </label>
         <button type="submit">Giriş Yap</button>
       </form>
-      <div class="switch-form">
-        Hesabınız yok mu? <a href="#" onclick="toggleForm('register')">Kayıt Ol</a>
+      <div style="text-align:center; margin-top:15px; font-size:14px; color:var(--text-muted);">
+        Hesabınız yok mu? <a href="#" onclick="toggleForm('register')" style="color:var(--primary); font-weight:600; text-decoration:none;">Kayıt Ol</a>
       </div>
     </div>
 
-    <!-- KAYIT FORMU -->
     <div id="registerFormContainer" class="hidden">
       <h2>Kayıt Başvurusu</h2>
       <p class="subtitle">Yönetici onayından sonra giriş yapabilirsiniz.</p>
       <form id="registerForm" onsubmit="handleRegister(event)">
-        <div class="form-group">
-          <label>E-posta</label>
-          <input type="email" id="regEmail" required placeholder="ornek@mail.com">
-        </div>
-        <div class="form-group">
-          <label>Şifre</label>
-          <input type="password" id="regPassword" required placeholder="••••••••">
-        </div>
+        <div class="form-group"><label>E-posta</label><input type="email" id="regEmail" required placeholder="ornek@mail.com"></div>
+        <div class="form-group"><label>Şifre</label><input type="password" id="regPassword" required placeholder="••••••••"></div>
         <button type="submit">Kayıt Başvurusu Yap</button>
       </form>
-      <div class="switch-form">
-        Zaten hesabınız var mı? <a href="#" onclick="toggleForm('login')">Giriş Yap</a>
+      <div style="text-align:center; margin-top:15px; font-size:14px; color:var(--text-muted);">
+        Zaten hesabınız var mı? <a href="#" onclick="toggleForm('login')" style="color:var(--primary); font-weight:600; text-decoration:none;">Giriş Yap</a>
       </div>
     </div>
+  </div>
+
+  <!-- ================= ANA UYGULAMA PANELİ (GİRİŞTEN SONRA AÇILIR) ================= -->
+  <div class="app-container hidden" id="appMainPanel">
+    
+    <!-- SOL TARAF: CANLI SOHBET ODASI -->
+    <div class="panel">
+      <h3>💬 Canlı Sohbet Odası</h3>
+      <p class="subtitle" id="userWelcomeText"></p>
+      <div class="chat-box" id="chatBox"></div>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="msgInput" placeholder="Mesajınızı yazın..." onkeypress="if(event.key==='Enter') sendChat()">
+        <button onclick="sendChat()" style="width:80px;">Gönder</button>
+      </div>
+    </div>
+
+    <!-- SAĞ TARAF: SÜRE ÖLÇER & ORTALAMA GRAFİĞİ -->
+    <div class="panel">
+      <h3>⏱️ Süre Takip Programı</h3>
+      <p class="subtitle">Yaptığın aktivitenin sayacını başlat, ortalamanı gör!</p>
+      
+      <div class="timer-grid">
+        <div class="timer-card">
+          <span style="color:#10b981; font-weight:bold;">📚 Ders</span>
+          <div class="timer-time" id="time-Ders">00:00</div>
+          <button id="btn-Ders" class="btn-sm btn-ders" onclick="toggleTimer('Ders')">Başlat</button>
+        </div>
+        <div class="timer-card">
+          <span style="color:#ff0050; font-weight:bold;">🎵 TikTok</span>
+          <div class="timer-time" id="time-TikTok">00:00</div>
+          <button id="btn-TikTok" class="btn-sm btn-tiktok" onclick="toggleTimer('TikTok')">Başlat</button>
+        </div>
+        <div class="timer-card">
+          <span style="color:#ff0000; font-weight:bold;">📺 YouTube</span>
+          <div class="timer-time" id="time-YouTube">00:00</div>
+          <button id="btn-YouTube" class="btn-sm btn-yt" onclick="toggleTimer('YouTube')">Başlat</button>
+        </div>
+        <div class="timer-card">
+          <span style="color:#3b82f6; font-weight:bold;">🎮 Oyun</span>
+          <div class="timer-time" id="time-Oyun">00:00</div>
+          <button id="btn-Oyun" class="btn-sm btn-oyun" onclick="toggleTimer('Oyun')">Başlat</button>
+        </div>
+      </div>
+
+      <!-- Ortalamaları gösteren dairesel grafik -->
+      <div class="chart-container">
+        <canvas id="statsChart"></canvas>
+      </div>
+    </div>
+
   </div>
 
   <script>
     // --- BAĞLANTI AYARLARI ---
     const SUPABASE_URL = "https://yqhdgogfxcycjilfillb.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_aJVa7IVB6HfcQYug4JNeow_RwnGZaB7"; // Supabase'deki anon public key değerini buraya yapıştır!
-    const WEB3FORMS_KEY = "387c3113-1e0f-4f5c-ad17-4bf2a9ca3170"; // Saniyeler içinde aldığın mail anahtarı eklendi!
+    const SUPABASE_ANON_KEY = "sb_publishable_aJVa7IVB6HfcQYug4JNeow_RwnGZaB7"; // Kendi Supabase anon key'ini buraya yapıştır!
+    const WEB3FORMS_KEY = "387c3113-1e0f-4f5c-ad17-4bf2a9ca3170";
 
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let currentUserEmail = "";
+    
+    // Sayaç Değişkenleri
+    let activeType = null;
+    let timerInterval = null;
+    let secondsElapsed = 0;
+    let myChart = null;
 
     document.addEventListener("DOMContentLoaded", () => {
       const savedEmail = localStorage.getItem("rememberedEmail");
@@ -101,9 +165,9 @@
       }
     });
 
-    function toggleForm(formType) {
+    function toggleForm(type) {
       hideAlert();
-      if (formType === 'register') {
+      if (type === 'register') {
         document.getElementById('loginFormContainer').classList.add('hidden');
         document.getElementById('registerFormContainer').classList.remove('hidden');
       } else {
@@ -114,97 +178,179 @@
 
     function showAlert(msg, type) {
       const box = document.getElementById("alertBox");
-      box.textContent = msg;
-      box.className = `alert alert-${type}`;
-      box.style.display = 'block';
+      box.textContent = msg; box.className = `alert alert-${type}`; box.style.display = 'block';
     }
-
-    function hideAlert() {
-      document.getElementById("alertBox").style.display = 'none';
-    }
+    function hideAlert() { document.getElementById("alertBox").style.display = 'none'; }
 
     // --- GİRİŞ KONTROLÜ ---
     async function handleLogin(e) {
-      e.preventDefault();
-      hideAlert();
-
+      e.preventDefault(); hideAlert();
       const email = document.getElementById("loginEmail").value;
       const password = document.getElementById("loginPassword").value;
       const rememberMe = document.getElementById("rememberMe").checked;
 
-      if (rememberMe) {
-        localStorage.setItem("rememberedEmail", email);
-      } else {
-        localStorage.removeItem("rememberedEmail");
-      }
+      if (rememberMe) { localStorage.setItem("rememberedEmail", email); } 
+      else { localStorage.removeItem("rememberedEmail"); }
 
       const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
-
-      if (error) {
-        showAlert("Giriş Başarısız: " + error.message, "error");
-        return;
-      }
+      if (error) { showAlert("Giriş Başarısız: " + error.message, "error"); return; }
 
       const user = data.user;
+      const { data: profile } = await _supabase.from('profiles').select('is_approved').eq('id', user.id).single();
 
-      // Yönetici Onay Durumu Kontrolü
-      const { data: profile, error: profileError } = await _supabase
-        .from('profiles')
-        .select('is_approved')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError || !profile) {
-        showAlert("Profil doğrulanırken hata oluştu.", "error");
+      if (!profile || profile.is_approved === false) {
+        showAlert("Giriş engellendi! Hesabınız henüz yönetici tarafından onaylanmamış.", "error");
         await _supabase.auth.signOut();
         return;
       }
 
-      if (profile.is_approved === false) {
-        showAlert("Giriş engellendi! Hesabınız henüz yönetici tarafından onaylanmamış.", "error");
-        await _supabase.auth.signOut();
-      } else {
-        showAlert("Giriş başarılı! Giriş yapıldı.", "success");
-      }
+      currentUserEmail = user.email;
+      loadAppInterface();
     }
 
-    // --- KAYIT VE MAİL BİLDİRİM SÜRECİ ---
+    // --- KAYIT İŞLEMİ ---
     async function handleRegister(e) {
-      e.preventDefault();
-      hideAlert();
-
+      e.preventDefault(); hideAlert();
       const email = document.getElementById("regEmail").value;
       const password = document.getElementById("regPassword").value;
 
-      // 1. Supabase'e kayıt et
       const { data, error } = await _supabase.auth.signUp({ email, password });
+      if (error) { showAlert("Kayıt Hatası: " + error.message, "error"); return; }
 
-      if (error) {
-        showAlert("Kayıt Hatası: " + error.message, "error");
-        return;
-      }
-
-      // 2. Sana (Yöneticiye) E-posta Bildirimi Gönder
       try {
         await fetch("https://api.web3forms.com/submit", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-          },
+          method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             access_key: WEB3FORMS_KEY,
             subject: "🔔 Sitenizde Yeni Kayıt Başvurusu Var!",
-            message: `Yeni bir kullanıcı kayıt olmak istiyor.\n\nKullanıcı E-postası: ${email}\n\nBu kullanıcıyı onaylamak için Supabase paneline giriş yapıp profiles tablosundan is_approved değerini true yapabilirsiniz.`
+            message: `Yeni Kayıt İsteyen: ${email}\n\nOnaylamak için paneline girip is_approved değerini true yapabilirsiniz.`
           })
         });
-      } catch (err) {
-        console.log("Mail gönderiminde hata:", err);
-      }
+      } catch (err) {}
 
-      showAlert("Kayıt başvurusu yapıldı ve yöneticiye mail gönderildi! Onay bekleyin.", "success");
+      showAlert("Kayıt başvurusu yapıldı! Yönetici onayından sonra giriş yapabilirsiniz.", "success");
       document.getElementById("registerForm").reset();
       setTimeout(() => { toggleForm('login'); }, 4000);
+    }
+
+    // --- SİTE ARAYÜZÜNÜ YÜKLEME ---
+    function loadAppInterface() {
+      document.getElementById("authContainer").classList.add("hidden");
+      document.getElementById("appMainPanel").classList.remove("hidden");
+      document.getElementById("userWelcomeText").textContent = `Hoş geldin, ${currentUserEmail}`;
+      
+      // Mesajları ve grafikleri canlı güncellemeye başla
+      loadMessages();
+      loadStats();
+      setInterval(loadMessages, 3000); // Her 3 saniyede yeni mesajları kontrol et
+    }
+
+    // --- CANLI SOHBET SİSTEMİ ---
+    async function loadMessages() {
+      const { data } = await _supabase.from('messages').select('*').order('id', { ascending: true }).limit(50);
+      if (!data) return;
+      
+      const chatBox = document.getElementById("chatBox");
+      const isAtBottom = chatBox.scrollHeight - chatBox.clientHeight <= chatBox.scrollTop + 50;
+      
+      chatBox.innerHTML = "";
+      data.forEach(m => {
+        const isMe = m.email === currentUserEmail;
+        const div = document.createElement("div");
+        div.className = `msg ${isMe ? 'me' : ''}`;
+        div.innerHTML = `<span class="msg-sender">${m.email.split('@')[0]}</span>${m.text}`;
+        chatBox.appendChild(div);
+      });
+      
+      if (isAtBottom) { chatBox.scrollTop = chatBox.scrollHeight; }
+    }
+
+    async function sendChat() {
+      const input = document.getElementById("msgInput");
+      const text = input.value.trim();
+      if (!text) return;
+
+      input.value = "";
+      await _supabase.from('messages').insert([{ email: currentUserEmail, text: text }]);
+      loadMessages();
+    }
+
+    // --- SAYAÇ VE ORTALAMA SİSTEMİ ---
+    function toggleTimer(type) {
+      if (activeType === type) {
+        // Sayacı durdur ve veritabanına kaydet
+        clearInterval(timerInterval);
+        const minutesTracked = Math.round(secondsElapsed / 60) || 1; // En az 1 dakika kaydet
+        saveTimeLog(activeType, minutesTracked);
+        
+        document.getElementById(`btn-${activeType}`).textContent = "Başlat";
+        document.getElementById(`time-${activeType}`).textContent = "00:00";
+        activeType = null;
+        secondsElapsed = 0;
+      } else {
+        // Eğer zaten çalışan başka bir sayaç varsa önce onu durdur
+        if (activeType) { toggleTimer(activeType); }
+        
+        // Yeni sayacı başlat
+        activeType = type;
+        secondsElapsed = 0;
+        document.getElementById(`btn-${type}`).textContent = "Durdur";
+        
+        timerInterval = setInterval(() => {
+          secondsElapsed++;
+          const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+          const secs = String(secondsElapsed % 60).padStart(2, '0');
+          document.getElementById(`time-${type}`).textContent = `${mins}:${secs}`;
+        }, 1000);
+      }
+    }
+
+    async function saveTimeLog(type, mins) {
+      await _supabase.from('time_logs').insert([{ email: currentUserEmail, activity_type: type, duration_minutes: mins }]);
+      loadStats();
+    }
+
+    // Ortalamaları Supabase'den çekip Grafik olarak basma
+    async function loadStats() {
+      const { data } = await _supabase.from('time_logs').select('activity_type, duration_minutes');
+      
+      let totals = { 'Ders': 0, 'TikTok': 0, 'YouTube': 0, 'Oyun': 0 };
+      if (data) {
+        data.forEach(log => {
+          if (totals[log.activity_type] !== undefined) {
+            totals[log.activity_type] += log.duration_minutes;
+          }
+        });
+      }
+
+      const totalSum = totals['Ders'] + totals['TikTok'] + totals['YouTube'] + totals['Oyun'] || 1;
+      const chartData = [totals['Ders'], totals['TikTok'], totals['YouTube'], totals['Oyun']];
+
+      const ctx = document.getElementById('statsChart').getContext('2d');
+      
+      if (myChart) {
+        myChart.data.datasets[0].data = chartData;
+        myChart.update();
+      } else {
+        myChart = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Ders (Dk)', 'TikTok (Dk)', 'YouTube (Dk)', 'Oyun (Dk)'],
+            datasets: [{
+              data: chartData,
+              backgroundColor: ['#10b981', '#ff0050', '#ff0000', '#3b82f6'],
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } }
+            }
+          }
+        });
+      }
     }
   </script>
 </body>
