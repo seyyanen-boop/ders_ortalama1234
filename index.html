@@ -7,7 +7,7 @@
 
   <!-- OTOMATİK GÜNCELLEME KONTROLÜ -->
   <script>
-    const CURRENT_VERSION = "1.6.7"; 
+    const CURRENT_VERSION = "1.6.8"; 
 
     async function checkForUpdates() {
       try {
@@ -228,7 +228,7 @@
         <div class="timer-card">
           <span class="timer-label" style="color: #059669;">📚 Ders</span>
           <div id="countdownBox-Ders" style="margin-bottom: 4px; display: none;">
-            <input type="text" inputmode="numeric" pattern="[0-9]*" id="targetMinutes-Ders" value="25" style="padding: 4px; font-size: 11px; text-align: center;" placeholder="Dk">
+            <input type="number" id="targetMinutes-Ders" value="25" style="padding: 4px; font-size: 11px; text-align: center;" placeholder="Dk">
           </div>
           <div class="timer-time" id="time-Ders">00:00</div>
           <button id="btn-Ders" class="btn-timer btn-ders" onclick="toggleTimer('Ders')">Başlat</button>
@@ -236,7 +236,7 @@
         <div class="timer-card">
           <span class="timer-label" style="color: #e11d48;">🎮 Eğlence</span>
           <div id="countdownBox-Eglence" style="margin-bottom: 4px; display: none;">
-            <input type="text" inputmode="numeric" pattern="[0-9]*" id="targetMinutes-Eglence" value="30" style="padding: 4px; font-size: 11px; text-align: center;" placeholder="Dk">
+            <input type="number" id="targetMinutes-Eglence" value="30" style="padding: 4px; font-size: 11px; text-align: center;" placeholder="Dk">
           </div>
           <div class="timer-time" id="time-Eglence">00:00</div>
           <button id="btn-Eglence" class="btn-timer btn-eglence" onclick="toggleTimer('Eglence')">Başlat</button>
@@ -332,6 +332,7 @@
     let myChart = null;
     let lastSeenMsgId = 0;
     let realTimeSecondsAccumulator = 0;
+    let isEditingAdminInputs = false;
 
     function getCurrentMonthYear() {
       const d = new Date();
@@ -450,7 +451,7 @@
         }
         loadMessages();
         loadLeaderboard();
-        if (isAdmin) loadAdminPanelUsers();
+        if (isAdmin && !isEditingAdminInputs) loadAdminPanelUsers();
       }, 3000);
     }
 
@@ -466,7 +467,6 @@
       }, 1000);
     }
 
-    // GROQ API BAĞLANTISI
     async function askGeminiCoach(customPrompt = null) {
       const coachEl = document.getElementById("coachMessageText");
       const inputEl = document.getElementById("coachQuestionInput");
@@ -529,6 +529,7 @@
     }
 
     async function loadAdminPanelUsers() {
+      if (isEditingAdminInputs) return;
       const { data: users } = await _supabase.from('app_users').select('name, is_approved, is_admin');
       const currentMonth = getCurrentMonthYear();
       const { data: goals } = await _supabase.from('monthly_goals').select('*').eq('month_year', currentMonth);
@@ -560,7 +561,7 @@
             <b>${u.name}</b> ${u.is_admin ? '<span class="admin-tag">ADMIN</span>' : ''} (${statusText}) ${actionBtn}
           </div>
           <div style="display:flex; align-items:center; gap:4px; margin-top:2px;">
-            <input type="text" inputmode="decimal" id="goalInput_${u.name}" value="${targetHours}" placeholder="Saat" style="width:65px; padding:4px; font-size:10px;" title="Hedef Saat">
+            <input type="text" inputmode="decimal" id="goalInput_${u.name}" value="${targetHours}" placeholder="Saat" style="width:65px; padding:4px; font-size:10px;" onfocus="isEditingAdminInputs=true" onblur="isEditingAdminInputs=false" title="Hedef Saat">
             <span style="font-size:10px; font-weight:600;">sa</span>
             <button onclick="saveUserGoal('${u.name}')" style="padding:4px 8px; font-size:10px; width:auto; background:var(--primary);">Hedef Koy</button>
             <button onclick="toggleGold('${u.name}', ${goalMap[u.name] ? goalMap[u.name].gold_won : false})" style="padding:4px 6px; font-size:10px; width:auto; background:${goldStatus === 'kazandı' ? '#f59e0b' : '#64748b'};" title="Gram Altın Durumu">🏆 ${goldStatus === 'kazandı' ? 'Altın Verildi' : 'Altın Yok'}</button>
@@ -583,6 +584,7 @@
       } else {
         await _supabase.from('monthly_goals').insert([{ username: username, month_year: currentMonth, target_minutes: targetMins, gold_won: false }]);
       }
+      isEditingAdminInputs = false;
       alert(`${username} için aylık ${targetHours} saat hedef güncellendi!`);
       loadAdminPanelUsers();
       loadLeaderboard();
@@ -721,7 +723,6 @@
         }
       });
 
-      // Kullanıcının kendi hedef göstergesini güncel tut
       if (currentUserName && goalMap[currentUserName]) {
         const targetMins = goalMap[currentUserName].target_minutes;
         const targetHours = (targetMins / 60).toFixed(1).replace('.0', '');
@@ -743,7 +744,6 @@
         let goldBadge = (goalMap[name] && goalMap[name].gold_won) ? ` <span style="background:#f59e0b; color:white; font-size:8px; padding:2px 4px; border-radius:4px; font-weight:700;">🏆 1 Gr Altın</span>` : "";
         let statusSub = statusMap[name] ? `<div style="font-size:9px; color:var(--text-muted); font-weight:normal;">${statusMap[name]}</div>` : "";
 
-        // Herkesin kendi aylık hedef ilerlemesini yanda görmesi
         let userGoalMins = (goalMap[name] && goalMap[name].target_minutes) ? goalMap[name].target_minutes : 0;
         let userMonthlyMins = userMonthlyTotals[name] || 0;
         let goalInfoStr = "";
