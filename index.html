@@ -155,7 +155,6 @@
     const SUPABASE_ANON_KEY = "sb_publishable_aJVa7IVB6HfcQYug4JNeow_RwnGZaB7";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    // Web3Forms API Anahtarın buraya eklenmiştir
     const WEB3FORMS_KEY = "387c3113-1e0f-4f5c-ad17-4bf2a9ca3170"; 
     
     let currentUserName = localStorage.getItem("chat_username") || "";
@@ -196,19 +195,20 @@
       if (!name || !password) return;
 
       if (isRegisterMode) {
-        let { data: existingUser } = await _supabase.from('app_users').select('*').eq('name', name).maybeSingle();
-        if (existingUser) {
-          showAlert("Bu kullanıcı adı zaten alınmış!", 'error');
-          return;
-        }
-
+        // RLS veya önbellek engeline takılmamak için doğrudan ekleme deniyoruz.
+        // Eğer veritabanında unique kısıtlaması varsa hata dönecektir, yoksa doğrudan ekler.
         let { error } = await _supabase.from('app_users').insert([{ name: name, password: password, is_approved: false }]);
+        
         if (error) {
-          showAlert("Kayıt oluşturulurken hata oluştu.", 'error');
+          // Eğer hata benzersizlik (unique) kısıtlamasından kaynaklanıyorsa kullanıcı zaten vardır
+          if (error.code === '23505' || error.message.includes('duplicate') || error.message.includes('already exists')) {
+            showAlert("Bu kullanıcı adı zaten alınmış!", 'error');
+          } else {
+            showAlert("Kayıt oluşturulurken hata oluştu: " + error.message, 'error');
+          }
           return;
         }
 
-        // Web3Forms ile eski detaylı formatında mail gönderimi
         try {
           await fetch("https://api.web3forms.com/submit", {
             method: "POST",
