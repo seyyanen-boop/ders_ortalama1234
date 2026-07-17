@@ -164,20 +164,25 @@
     </div>
 
     <div class="panel">
-      <h3>📊 Ekran Süresi & Pomodoro</h3>
-      <p class="subtitle">Hedef ve sayaç yönetimi.</p>
+      <h3>📊 Ekran Süresi & Sayaç</h3>
+      <p class="subtitle">Süre yönetimi.</p>
       
       <div class="streak-box">
         <span id="streakDisplay">🔥 Zincir: 0 Gün</span>
         <span id="goalDisplay" style="color: var(--primary);">🎯 Hedef: 60dk / Gün</span>
       </div>
 
-      <div style="display: flex; gap: 6px; margin-bottom: 8px; align-items: center;">
+      <div style="display: flex; gap: 6px; margin-bottom: 6px; align-items: center;">
         <label style="font-size: 10px; margin:0;">Mod:</label>
         <select id="timerModeSelect" style="padding: 4px; font-size: 11px;" onchange="changeTimerMode()">
-          <option value="stopwatch">Normal Kronometre</option>
-          <option value="pomodoro">Pomodoro (25 dk Çalış / 5 dk Mola)</option>
+          <option value="stopwatch">Normal Kronometre (İleri)</option>
+          <option value="countdown">Özel Geri Sayım (Süre Seç)</option>
         </select>
+      </div>
+
+      <div id="customMinuteBox" style="margin-bottom: 6px; display: none;">
+        <label style="font-size: 10px;">Kaç dakika çalışacaksın?</label>
+        <input type="number" id="targetMinutesInput" value="25" min="1" max="300" style="padding: 6px; font-size: 12px;">
       </div>
 
       <div class="timer-grid">
@@ -221,6 +226,7 @@
       const savedTheme = localStorage.getItem("app_theme") || "light";
       document.body.setAttribute("data-theme", savedTheme);
       checkNotificationStatus();
+      changeTimerMode();
       if (currentUserName) {
         checkAdminStatus(currentUserName).then(() => enterApp(currentUserName));
       }
@@ -260,6 +266,7 @@
     let timerInterval = null;
     let secondsElapsed = 0;
     let timerRemainingSeconds = 0;
+    let initialCountdownSeconds = 0;
     let myChart = null;
     let lastSeenMsgId = 0;
 
@@ -531,6 +538,13 @@
 
     function changeTimerMode() {
       if (activeType) toggleTimer(activeType);
+      const mode = document.getElementById("timerModeSelect").value;
+      const customBox = document.getElementById("customMinuteBox");
+      if (mode === 'countdown') {
+        customBox.style.display = "block";
+      } else {
+        customBox.style.display = "none";
+      }
     }
 
     function toggleTimer(type) {
@@ -540,12 +554,19 @@
       if (activeType === type) {
         clearInterval(timerInterval);
         let completedMins = 0;
-        if (mode === 'pomodoro') {
-          completedMins = 25; 
+        if (mode === 'countdown') {
+          let elapsedSecs = initialCountdownSeconds - timerRemainingSeconds;
+          completedMins = Math.round(elapsedSecs / 60);
+          if (completedMins < 1 && elapsedSecs > 0) completedMins = 1;
+          if (completedMins <= 0) completedMins = initialCountdownSeconds / 60;
         } else {
           completedMins = Math.round(secondsElapsed / 60) || 1;
         }
-        saveTimeLog(activeType, completedMins);
+        
+        if (completedMins > 0) {
+          saveTimeLog(activeType, completedMins);
+        }
+
         targetBtn.textContent = "Başlat";
         targetBtn.className = `btn-timer btn-${type.toLowerCase()}`;
         document.getElementById(`time-${type}`).textContent = "00:00";
@@ -556,21 +577,23 @@
         activeType = type;
         secondsElapsed = 0;
         
-        if (mode === 'pomodoro') {
-          timerRemainingSeconds = 25 * 60;
+        if (mode === 'countdown') {
+          const userMins = parseInt(document.getElementById("targetMinutesInput").value) || 25;
+          initialCountdownSeconds = userMins * 60;
+          timerRemainingSeconds = initialCountdownSeconds;
         }
 
         targetBtn.textContent = "Durdur";
         targetBtn.className = "btn-timer btn-stop";
         
         timerInterval = setInterval(() => {
-          if (mode === 'pomodoro') {
+          if (mode === 'countdown') {
             timerRemainingSeconds--;
             let m = String(Math.floor(timerRemainingSeconds / 60)).padStart(2, '0');
             let s = String(timerRemainingSeconds % 60).padStart(2, '0');
             document.getElementById(`time-${type}`).textContent = `${m}:${s}`;
             if (timerRemainingSeconds <= 0) {
-              alert("Pomodoro seansı tamamlandı!");
+              alert("Süre doldu! Tebrikler.");
               toggleTimer(type);
             }
           } else {
@@ -595,7 +618,6 @@
       let dList = [0,0,0,0,0,0,0], eList = [0,0,0,0,0,0,0];
       let toplam = 0, aktifGun = new Set();
       let todayStr = new Date().toISOString().split('T')[0];
-      let todayTotal = 0;
 
       if (data) {
         data.forEach(l => {
@@ -604,7 +626,6 @@
           let idx = t.getDay() - 1; if (idx === -1) idx = 6;
           toplam += l.duration_minutes;
           aktifGun.add(dateStr);
-          if (dateStr === todayStr) todayTotal += l.duration_minutes;
           if (l.activity_type === 'Ders') dList[idx] += l.duration_minutes;
           else eList[idx] += l.duration_minutes;
         });
