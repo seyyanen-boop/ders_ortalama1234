@@ -6,7 +6,7 @@
   <title>Akıllı Çalışma ve Sosyal Alan</title>
 
   <script>
-    const CURRENT_VERSION = "1.2.0"; 
+    const CURRENT_VERSION = "1.3.0"; 
 
     async function checkForUpdates() {
       try {
@@ -658,46 +658,4 @@
 
       if (data) {
         data.forEach(l => {
-          const t = new Date(l.created_at);
-          let dateStr = t.toISOString().split('T')[0];
-          let idx = t.getDay() - 1; if (idx === -1) idx = 6;
-          toplam += l.duration_minutes;
-          aktifGun.add(dateStr);
-          if (l.activity_type === 'Ders') dList[idx] += l.duration_minutes;
-          else eList[idx] += l.duration_minutes;
-        });
-      }
-
-      const ort = Math.round(toplam / (aktifGun.size || 1));
-      document.getElementById("avgDisplay").textContent = ort >= 60 ? `${Math.floor(ort/60)} sa ${ort%60} dk` : `${ort} dk`;
-      document.getElementById("streakDisplay").textContent = `🔥 Zincir: ${aktifGun.size} Gün`;
-
-      const ctx = document.getElementById('iphoneBarChart').getContext('2d');
-      if (myChart) {
-        myChart.data.datasets[0].data = dList;
-        myChart.data.datasets[1].data = eList;
-        myChart.update();
-      } else {
-        myChart = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: gunEtiketleri,
-            datasets: [
-              { label: 'Ders', data: dList, backgroundColor: '#34d399', borderRadius: 4 },
-              { label: 'Eğlence', data: eList, backgroundColor: '#f43f5e', borderRadius: 4 }
-            ]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            scales: {
-              x: { stacked: true, grid: { display: false } },
-              y: { stacked: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { callback: v => v + 'dk' } }
-            },
-            plugins: { legend: { display: false } }
-          }
-        });
-      }
-    }
-  </script>
-</body>
-</html>
+          const t = new Date(l.created_at
