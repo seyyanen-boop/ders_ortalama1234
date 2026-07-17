@@ -2,11 +2,14 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Akıllı Çalışma ve Sohbet Alanı</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Akıllı Çalışma ve Sosyal Alan</title>
   <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Profesyonel Grafikler İçin Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
@@ -17,289 +20,268 @@
       --card: #ffffff;
       --text: #0f172a;
       --text-muted: #64748b;
-      --color-ders: #34d399; /* iPhone yeşili */
-      --color-eglence: #f43f5e; /* iPhone sosyal medya pembesi */
+      --color-ders: #34d399;
+      --color-eglence: #f43f5e;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-    .container { background: var(--card); padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03); width: 100%; max-width: 450px; }
-    .app-container { background: transparent; width: 100%; max-width: 1000px; display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px; }
+    body { background-color: var(--bg); color: var(--text); padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .container { background: var(--card); padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03); width: 100%; max-width: 400px; }
     
-    /* Ortak Kart Yapısı */
-    .panel { background: white; padding: 24px; border-radius: 20px; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.02); display: flex; flex-direction: column; }
-    h2, h3 { margin-bottom: 6px; font-weight: 700; color: #1e293b; }
-    .subtitle { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; }
+    /* Mobil Uyumlu Grid Düzeni */
+    .app-container { background: transparent; width: 100%; max-width: 1100px; display: grid; grid-template-columns: 1fr; gap: 15px; }
+    @media (min-width: 768px) {
+      .app-container { grid-template-columns: 1fr 1fr 1.1fr; }
+    }
     
-    /* Form Elemanları */
-    .form-group { margin-bottom: 16px; }
-    label { display: block; font-size: 13px; margin-bottom: 6px; font-weight: 600; color: #475569; }
-    input { width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; transition: all 0.2s; color: var(--text); }
-    input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
-    button { width: 100%; padding: 12px; background-color: var(--primary); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    button:hover { background-color: var(--primary-hover); }
+    .panel { background: white; padding: 18px; border-radius: 20px; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.02); display: flex; flex-direction: column; min-height: 450px; }
+    h2, h3 { margin-bottom: 4px; font-weight: 700; color: #1e293b; font-size: 16px; }
+    .subtitle { color: var(--text-muted); font-size: 12px; margin-bottom: 12px; }
+    
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 12px; margin-bottom: 4px; font-weight: 600; color: #475569; }
+    input { width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; color: var(--text); }
+    button { width: 100%; padding: 12px; background-color: var(--primary); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
     .hidden { display: none !important; }
     
-    /* Alert Bildirimleri */
-    .alert { padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; text-align: center; display: none; font-weight: 500; }
+    .alert { padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; text-align: center; display: none; font-weight: 500; }
     .alert-error { background-color: #fef2f2; color: #991b1b; border: 1px solid #fee2e2; }
-    .alert-success { background-color: #f0fdf4; color: #166534; border: 1px solid #d1fae5; }
 
-    /* Canlı Sohbet Alanı */
-    .chat-box { border: 1px solid #f1f5f9; height: 380px; overflow-y: auto; padding: 12px; border-radius: 10px; margin-bottom: 12px; background: #f8fafc; }
-    .msg { margin-bottom: 10px; font-size: 14px; background: #f1f5f9; padding: 8px 12px; border-radius: 12px; border-top-left-radius: 2px; width: fit-content; max-width: 80%; line-height: 1.4; }
-    .msg.me { background: #e0e7ff; color: #1e1b4b; margin-left: auto; border-radius: 12px; border-top-right-radius: 2px; }
-    .msg-sender { font-weight: 700; font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 2px; }
-    
-    /* Sayaç Tasarımları */
-    .timer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-    .timer-card { background: #f8fafc; border: 1px solid #f1f5f9; padding: 14px; border-radius: 14px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
-    .timer-label { font-weight: 700; font-size: 14px; display: block; margin-bottom: 4px; }
-    .timer-time { font-size: 26px; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums; margin-bottom: 10px; }
-    .btn-timer { padding: 8px 12px; font-size: 13px; border-radius: 8px; }
+    /* Bildirim İzin Banner Tasarımı */
+    #notifBanner { background: #e0e7ff; color: #312e81; padding: 10px 14px; border-radius: 10px; margin-bottom: 12px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+    #notifBanner button { width: auto; padding: 6px 12px; font-size: 11px; background: var(--primary); }
+
+    .chat-box { border: 1px solid #f1f5f9; flex: 1; overflow-y: auto; padding: 10px; border-radius: 10px; margin-bottom: 10px; background: #f8fafc; max-height: 250px; }
+    .msg { margin-bottom: 8px; font-size: 13px; background: #f1f5f9; padding: 8px 10px; border-radius: 10px; width: fit-content; max-width: 85%; line-height: 1.3; }
+    .msg.me { background: #e0e7ff; color: #1e1b4b; margin-left: auto; }
+    .msg-sender { font-weight: 700; font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 2px; cursor: pointer; }
+
+    .leaderboard-list { flex: 1; overflow-y: auto; border: 1px solid #f1f5f9; border-radius: 10px; padding: 8px; background: #f8fafc; max-height: 250px; }
+    .leaderboard-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
+    .user-badge { font-weight: 600; color: #334155; cursor: pointer; }
+
+    .timer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .timer-card { background: #f8fafc; border: 1.5px solid #f1f5f9; padding: 10px; border-radius: 10px; text-align: center; }
+    .timer-label { font-weight: 700; font-size: 11px; display: block; margin-bottom: 2px; }
+    .timer-time { font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 6px; }
+    .btn-timer { padding: 6px 8px; font-size: 11px; border-radius: 6px; width: auto; }
     .btn-ders { background-color: var(--color-ders); color: #064e3b; }
-    .btn-ders:hover { background-color: #059669; color: white; }
     .btn-eglence { background-color: var(--color-eglence); color: #fff1f2; }
-    .btn-eglence:hover { background-color: #e11d48; }
     .btn-stop { background-color: #64748b; color: white; }
-    .btn-stop:hover { background-color: #475569; color: white; }
-    
-    /* iPhone Ekran Süresi İstatistik Kartı */
-    .iphone-stats-card { background: #ffffff; border: 1.5px solid #f1f5f9; border-radius: 16px; padding: 16px; margin-bottom: 15px; }
-    .iphone-average-title { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-    .iphone-average-value { font-size: 28px; font-weight: 800; color: var(--text); margin-top: 2px; margin-bottom: 15px; }
-    .chart-container { position: relative; height: 180px; width: 100%; margin-bottom: 20px; }
 
-    /* Yeni Kategori Kırılım Kartları */
-    .category-breakdown-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid #f1f5f9; padding-top: 15px; }
-    .breakdown-card { display: flex; align-items: center; gap: 10px; }
-    .breakdown-indicator { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
-    .breakdown-info { display: flex; flex-direction: column; }
-    .breakdown-label { font-size: 12px; font-weight: 700; color: #475569; }
-    .breakdown-value { font-size: 14px; font-weight: 800; color: var(--text); margin-top: 1px; }
-    .breakdown-percentage { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+    .iphone-stats-card { background: #ffffff; border: 1.5px solid #f1f5f9; border-radius: 12px; padding: 10px; }
+    .iphone-average-title { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+    .iphone-average-value { font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+    .chart-container { position: relative; height: 110px; width: 100%; }
+
+    #whatsappToast {
+      position: fixed; top: 15px; right: 15px; left: 15px; background: #ffffff; border-left: 5px solid #25d366;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15); padding: 12px 16px; border-radius: 10px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 4px; transition: transform 0.3s ease, opacity 0.3s ease;
+      transform: translateY(-120%); opacity: 0;
+    }
+    #whatsappToast.show { transform: translateY(0); opacity: 1; }
   </style>
 </head>
 <body>
 
-  <!-- ================= GİRİŞ / KAYIT PANELİ ================= -->
-  <div class="container" id="authContainer">
-    <div id="alertBox" class="alert"></div>
+  <!-- BİLDİRİM BALONU -->
+  <div id="whatsappToast">
+    <div style="font-weight:700; font-size:12px; color:#075e54;">💬 Yeni Mesaj (<span id="toastSender"></span>)</div>
+    <div style="font-size:12px; color:#334155;" id="toastMessage"></div>
+  </div>
 
+  <!-- GİRİŞ PANELİ -->
+  <div class="container" id="authContainer">
+    <div id="alertBox" class="alert alert-error"></div>
     <div id="loginFormContainer">
       <h2>Giriş Yap</h2>
       <p class="subtitle">Sisteme erişmek için bilgilerinizi girin.</p>
       <form id="loginForm" onsubmit="handleLogin(event)">
         <div class="form-group"><label>E-posta</label><input type="email" id="loginEmail" required placeholder="ornek@mail.com"></div>
         <div class="form-group"><label>Şifre</label><input type="password" id="loginPassword" required placeholder="••••••••"></div>
-        <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:16px; cursor:pointer; user-select:none;">
-          <input type="checkbox" id="rememberMe" style="width:auto;"> Beni Hatırla
-        </label>
         <button type="submit">Giriş Yap</button>
       </form>
-      <div style="text-align:center; margin-top:16px; font-size:13px; color:var(--text-muted);">
-        Hesabınız yok mu? <a href="#" onclick="toggleForm('register')" style="color:var(--primary); font-weight:600; text-decoration:none;">Kayıt Ol</a>
-      </div>
-    </div>
-
-    <div id="registerFormContainer" class="hidden">
-      <h2>Kayıt Başvurusu</h2>
-      <p class="subtitle">Yönetici onayından sonra giriş yapabilirsiniz.</p>
-      <form id="registerForm" onsubmit="handleRegister(event)">
-        <div class="form-group"><label>E-posta</label><input type="email" id="regEmail" required placeholder="ornek@mail.com"></div>
-        <div class="form-group"><label>Şifre</label><input type="password" id="regPassword" required placeholder="••••••••"></div>
-        <button type="submit">Kayıt Başvurusu Yap</button>
-      </form>
-      <div style="text-align:center; margin-top:16px; font-size:13px; color:var(--text-muted);">
-        Zaten hesabınız var mı? <a href="#" onclick="toggleForm('login')" style="color:var(--primary); font-weight:600; text-decoration:none;">Giriş Yap</a>
-      </div>
     </div>
   </div>
 
-  <!-- ================= ANA UYGULAMA PANELİ ================= -->
+  <!-- ANA UYGULAMA PANELİ -->
   <div class="app-container hidden" id="appMainPanel">
     
-    <!-- SOL BLOK: CANLI SOHBET ODASI -->
+    <!-- SOHBET -->
     <div class="panel">
-      <h3>💬 Canlı Sohbet Odası</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <h3 id="chatHeaderTitle" style="margin:0;">💬 Genel Sohbet</h3>
+        <button id="backToGeneralBtn" class="hidden" onclick="switchChatMode('general')" style="width: auto; padding: 3px 8px; font-size: 10px; background:#64748b;">Genel'e Dön</button>
+      </div>
       <p class="subtitle" id="userWelcomeText"></p>
+      
+      <!-- Bildirim İzin Banner'ı -->
+      <div id="notifBanner" class="hidden">
+        <span>Bildirimleri Aç (WhatsApp Gibi Al)</span>
+        <button onclick="requestNotificationPermission()">İzin Ver</button>
+      </div>
+
       <div class="chat-box" id="chatBox"></div>
-      <div style="display:flex; gap:8px;">
-        <input type="text" id="msgInput" placeholder="Mesajınızı buraya yazın..." onkeypress="if(event.key==='Enter') sendChat()">
-        <button onclick="sendChat()" style="width:90px;">Gönder</button>
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="msgInput" placeholder="Mesaj yaz..." onkeypress="if(event.key==='Enter') sendChat()">
+        <button onclick="sendChat()" style="width:70px;">Gönder</button>
       </div>
     </div>
 
-    <!-- SAĞ BLOK: IPHONE EKRAN SÜRESİ MANTIĞI -->
+    <!-- LİDERLİK -->
     <div class="panel">
-      <h3>📊 Ekran Süresi & Takip</h3>
-      <p class="subtitle">iPhone tarzı haftalık dikey sütun analizi ve detaylı ortalamalar.</p>
+      <h3>🏆 Arkadaş Liderliği</h3>
+      <p class="subtitle">Herkesin toplam süreleri.</p>
+      <div class="leaderboard-list" id="leaderboardList"></div>
+    </div>
+
+    <!-- EKRAN SÜRESİ -->
+    <div class="panel">
+      <h3>📊 Ekran Süresi</h3>
+      <p class="subtitle">Haftalık detaylı ortalama dağılımın.</p>
       
       <div class="timer-grid">
-        <!-- DERS SAYACI -->
         <div class="timer-card">
-          <span class="timer-label" style="color: #059669;">📚 Ders Çalışma</span>
+          <span class="timer-label" style="color: #059669;">📚 Ders</span>
           <div class="timer-time" id="time-Ders">00:00</div>
           <button id="btn-Ders" class="btn-timer btn-ders" onclick="toggleTimer('Ders')">Başlat</button>
         </div>
-        
-        <!-- EĞLENCE SAYACI -->
         <div class="timer-card">
-          <span class="timer-label" style="color: #e11d48;">🎮 Sosyal Medya & Oyun</span>
+          <span class="timer-label" style="color: #e11d48;">🎮 Eğlence</span>
           <div class="timer-time" id="time-Eglence">00:00</div>
           <button id="btn-Eglence" class="btn-timer btn-eglence" onclick="toggleTimer('Eglence')">Başlat</button>
         </div>
       </div>
 
-      <!-- iPhone Tarzı Grafik ve Ortalama Kartı -->
       <div class="iphone-stats-card">
-        <div class="iphone-average-title">Toplam Günlük Ortalama</div>
+        <div class="iphone-average-title">Günlük Ortalama</div>
         <div class="iphone-average-value" id="avgDisplay">0 dk</div>
-        
         <div class="chart-container">
           <canvas id="iphoneBarChart"></canvas>
         </div>
-
-        <!-- YENİ DETAYLI ORTALAMA DAĞILIM ALANI -->
-        <div class="category-breakdown-grid">
-          <!-- Ders Dağılımı -->
-          <div class="breakdown-card">
-            <div class="breakdown-indicator" style="background-color: var(--color-ders);"></div>
-            <div class="breakdown-info">
-              <span class="breakdown-label">📚 Ders Çalışma</span>
-              <span class="breakdown-value" id="avgDersDisplay">0 dk</span>
-              <span class="breakdown-percentage" id="pctDersDisplay">%0</span>
-            </div>
-          </div>
-          
-          <!-- Eğlence Dağılımı -->
-          <div class="breakdown-card">
-            <div class="breakdown-indicator" style="background-color: var(--color-eglence);"></div>
-            <div class="breakdown-info">
-              <span class="breakdown-label">🎮 Eğlence & Sosyal</span>
-              <span class="breakdown-value" id="avgEglenceDisplay">0 dk</span>
-              <span class="breakdown-percentage" id="pctEglenceDisplay">%0</span>
-            </div>
-          </div>
-        </div>
-
       </div>
     </div>
 
   </div>
 
   <script>
-    // --- SUPABASE & API CONFIG ---
     const SUPABASE_URL = "https://yqhdgogfxcycjilfillb.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_aJVa7IVB6HfcQYug4JNeow_RwnGZaB7";
-    const WEB3FORMS_KEY = "387c3113-1e0f-4f5c-ad17-4bf2a9ca3170";
-
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    let currentUserEmail = "";
     
+    let currentUserEmail = "";
+    let activeChatPartner = null;
     let activeType = null;
     let timerInterval = null;
     let secondsElapsed = 0;
     let myChart = null;
+    let lastCheckedMsgId = 0;
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const savedEmail = localStorage.getItem("rememberedEmail");
-      if (savedEmail) {
-        document.getElementById("loginEmail").value = savedEmail;
-        document.getElementById("rememberMe").checked = true;
-      }
-    });
-
-    function toggleForm(type) {
-      hideAlert();
-      if (type === 'register') {
-        document.getElementById('loginFormContainer').classList.add('hidden');
-        document.getElementById('registerFormContainer').classList.remove('hidden');
-      } else {
-        document.getElementById('registerFormContainer').classList.add('hidden');
-        document.getElementById('loginFormContainer').classList.remove('hidden');
-      }
+    // Service Worker Kaydı (Telefonda arkaplanda çalışması için şart)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW Hata:', err));
+      });
     }
 
-    function showAlert(msg, type) {
-      const box = document.getElementById("alertBox");
-      box.textContent = msg; box.className = `alert alert-${type}`; box.style.display = 'block';
-    }
-    function hideAlert() { document.getElementById("alertBox").style.display = 'none'; }
-
-    // --- AUTH SYSTEMS ---
     async function handleLogin(e) {
-      e.preventDefault(); hideAlert();
+      e.preventDefault();
       const email = document.getElementById("loginEmail").value;
       const password = document.getElementById("loginPassword").value;
-      const rememberMe = document.getElementById("rememberMe").checked;
-
-      if (rememberMe) { localStorage.setItem("rememberedEmail", email); } 
-      else { localStorage.removeItem("rememberedEmail"); }
 
       const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
-      if (error) { showAlert("Giriş Başarısız: " + error.message, "error"); return; }
+      if (error) { alert("Hata: " + error.message); return; }
 
-      const user = data.user;
-      const { data: profile } = await _supabase.from('profiles').select('is_approved').eq('id', user.id).single();
-
-      if (!profile || profile.is_approved === false) {
-        showAlert("Giriş engellendi! Hesabınız henüz onaylanmamış.", "error");
-        await _supabase.auth.signOut();
-        return;
-      }
-
-      currentUserEmail = user.email;
-      loadAppInterface();
-    }
-
-    async function handleRegister(e) {
-      e.preventDefault(); hideAlert();
-      const email = document.getElementById("regEmail").value;
-      const password = document.getElementById("regPassword").value;
-
-      const { data, error } = await _supabase.auth.signUp({ email, password });
-      if (error) { showAlert("Kayıt Hatası: " + error.message, "error"); return; }
-
-      try {
-        await fetch("https://api.web3forms.com/submit", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ access_key: WEB3FORMS_KEY, subject: "🔔 Sitenizde Yeni Kayıt Başvurusu Var!", message: `Yeni Kayıt İsteyen: ${email}` })
-        });
-      } catch (err) {}
-
-      showAlert("Kayıt başvurusu yapıldı! Onay sonrası giriş yapabilirsiniz.", "success");
-      document.getElementById("registerForm").reset();
-      setTimeout(() => { toggleForm('login'); }, 3000);
-    }
-
-    function loadAppInterface() {
+      currentUserEmail = data.user.email;
       document.getElementById("authContainer").classList.add("hidden");
       document.getElementById("appMainPanel").classList.remove("hidden");
-      document.getElementById("userWelcomeText").textContent = `Kullanıcı: ${currentUserEmail}`;
+      document.getElementById("userWelcomeText").textContent = `Oturum: ${currentUserEmail.split('@')[0]}`;
       
-      loadMessages();
-      loadStats();
-      setInterval(loadMessages, 4000);
+      // Bildirim izni verilmemişse banner göster
+      if (Notification.permission !== "granted") {
+        document.getElementById("notifBanner").classList.remove("hidden");
+      }
+
+      initApp();
     }
 
-    // --- REALTIME CHAT ---
+    function requestNotificationPermission() {
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+          document.getElementById("notifBanner").classList.add("hidden");
+          new Notification("Bildirimler Aktif!", { body: "Artık mesajlar doğrudan bildirim olarak gelecek." });
+        }
+      });
+    }
+
+    function initApp() {
+      loadMessages();
+      loadLeaderboard();
+      loadStats();
+      setInterval(() => {
+        loadMessages();
+        loadLeaderboard();
+      }, 3000);
+    }
+
+    function switchChatMode(partnerEmail) {
+      activeChatPartner = partnerEmail === 'general' ? null : partnerEmail;
+      document.getElementById("chatHeaderTitle").textContent = activeChatPartner ? `🔒 ${activeChatPartner.split('@')[0]}` : "💬 Genel Sohbet";
+      const backBtn = document.getElementById("backToGeneralBtn");
+      if (activeChatPartner) backBtn.classList.remove("hidden");
+      else backBtn.classList.add("hidden");
+      loadMessages();
+    }
+
     async function loadMessages() {
-      const { data } = await _supabase.from('messages').select('*').order('id', { ascending: true }).limit(60);
+      const { data } = await _supabase.from('messages').select('*').order('id', { ascending: true });
       if (!data) return;
-      
+
       const chatBox = document.getElementById("chatBox");
       const isAtBottom = chatBox.scrollHeight - chatBox.clientHeight <= chatBox.scrollTop + 50;
-      
       chatBox.innerHTML = "";
+
       data.forEach(m => {
-        const isMe = m.email === currentUserEmail;
-        const div = document.createElement("div");
-        div.className = `msg ${isMe ? 'me' : ''}`;
-        div.innerHTML = `<span class="msg-sender">${m.email.split('@')[0]}</span>${m.text}`;
-        chatBox.appendChild(div);
+        const isDirect = m.recipient && ((m.email === currentUserEmail && m.recipient === activeChatPartner) || (m.email === activeChatPartner && m.recipient === currentUserEmail));
+        const isGeneral = !m.recipient && activeChatPartner === null;
+
+        if (isDirect || isGeneral) {
+          const isMe = m.email === currentUserEmail;
+          const div = document.createElement("div");
+          div.className = `msg ${isMe ? 'me' : ''}`;
+          div.innerHTML = `<span class="msg-sender" onclick="switchChatMode('${m.email}')">${m.email.split('@')[0]}</span>${m.text}`;
+          chatBox.appendChild(div);
+        }
+
+        // Bildirim Tetikleyicisi
+        if (m.recipient === currentUserEmail && m.id > lastCheckedMsgId) {
+          lastCheckedMsgId = m.id;
+          if (m.email !== activeChatPartner) {
+            triggerSystemNotification(m.email.split('@')[0], m.text);
+          }
+        }
       });
-      
-      if (isAtBottom) { chatBox.scrollTop = chatBox.scrollHeight; }
+      if (isAtBottom) chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function triggerSystemNotification(sender, text) {
+      // 1. Uygulama açıkse ekranda WhatsApp tarzı şık baloncuk göster
+      const toast = document.getElementById("whatsappToast");
+      document.getElementById("toastSender").textContent = sender;
+      document.getElementById("toastMessage").textContent = text;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 4000);
+
+      // 2. Telefon kapalı veya arkaplandaysa sistemin bildirim çubuğuna push at
+      if (Notification.permission === "granted" && navigator.serviceWorker) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification(`Yeni Mesaj: ${sender}`, {
+            body: text,
+            icon: 'https://cdn-icons-png.flaticon.com/512/3655/3655556.png',
+            vibrate: [200, 100, 200]
+          });
+        });
+      }
     }
 
     async function sendChat() {
@@ -308,37 +290,57 @@
       if (!text) return;
 
       input.value = "";
-      await _supabase.from('messages').insert([{ email: currentUserEmail, text: text }]);
+      const payload = { email: currentUserEmail, text: text };
+      if (activeChatPartner) payload.recipient = activeChatPartner;
+
+      await _supabase.from('messages').insert([payload]);
       loadMessages();
     }
 
-    // --- SAYAÇ MOTORU ---
+    async function loadLeaderboard() {
+      const { data } = await _supabase.from('time_logs').select('email, duration_minutes');
+      const listEl = document.getElementById("leaderboardList");
+      if (!data) return;
+
+      let userTotals = {};
+      data.forEach(log => { userTotals[log.email] = (userTotals[log.email] || 0) + log.duration_minutes; });
+
+      listEl.innerHTML = "";
+      Object.keys(userTotals).forEach(email => {
+        const total = userTotals[email];
+        const sa = Math.floor(total / 60);
+        const dk = total % 60;
+        const timeStr = sa > 0 ? `${sa} sa ${dk} dk` : `${dk} dk`;
+
+        const div = document.createElement("div");
+        div.className = "leaderboard-item";
+        div.innerHTML = `<span class="user-badge" onclick="switchChatMode('${email}')">👤 ${email.split('@')[0]}</span><strong style="color:var(--primary);">${timeStr}</strong>`;
+        listEl.appendChild(div);
+      });
+    }
+
     function toggleTimer(type) {
       const targetBtn = document.getElementById(`btn-${type}`);
-      
       if (activeType === type) {
         clearInterval(timerInterval);
-        const minutesTracked = Math.round(secondsElapsed / 60) || 1; 
-        saveTimeLog(activeType, minutesTracked);
-        
+        const mins = Math.round(secondsElapsed / 60) || 1;
+        saveTimeLog(activeType, mins);
         targetBtn.textContent = "Başlat";
         targetBtn.className = `btn-timer btn-${type.toLowerCase()}`;
         document.getElementById(`time-${type}`).textContent = "00:00";
         activeType = null;
         secondsElapsed = 0;
       } else {
-        if (activeType) { toggleTimer(activeType); } 
-        
+        if (activeType) toggleTimer(activeType);
         activeType = type;
         secondsElapsed = 0;
         targetBtn.textContent = "Durdur";
         targetBtn.className = "btn-timer btn-stop";
-        
         timerInterval = setInterval(() => {
           secondsElapsed++;
-          const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
-          const secs = String(secondsElapsed % 60).padStart(2, '0');
-          document.getElementById(`time-${type}`).textContent = `${mins}:${secs}`;
+          const m = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+          const s = String(secondsElapsed % 60).padStart(2, '0');
+          document.getElementById(`time-${type}`).textContent = `${m}:${s}`;
         }, 1000);
       }
     }
@@ -346,77 +348,33 @@
     async function saveTimeLog(type, mins) {
       await _supabase.from('time_logs').insert([{ email: currentUserEmail, activity_type: type, duration_minutes: mins }]);
       loadStats();
+      loadLeaderboard();
     }
 
-    // --- SÜRE METNİ FORMATLAYICI ---
-    function formatMinutes(totalMins) {
-      if (totalMins >= 60) {
-        const saat = Math.floor(totalMins / 60);
-        const dakika = totalMins % 60;
-        return `${saat} sa ${dakika} dk`;
-      }
-      return `${totalMins} dk`;
-    }
-
-    // --- IPHONE TARZI HAFTALIK GRAFİK VE DETAYLI ORTALAMA HESAPLAMA ---
     async function loadStats() {
-      const { data } = await _supabase.from('time_logs').select('created_at, activity_type, duration_minutes');
-      
+      const { data } = await _supabase.from('time_logs').select('created_at, activity_type, duration_minutes').eq('email', currentUserEmail);
       const gunEtiketleri = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
-      let haftalikDers = [0, 0, 0, 0, 0, 0, 0];
-      let haftalikEglence = [0, 0, 0, 0, 0, 0, 0];
-      
-      let toplamDersDakika = 0;
-      let toplamEglenceDakika = 0;
-      let aktifGunler = new Set();
+      let dList = [0,0,0,0,0,0,0], eList = [0,0,0,0,0,0,0];
+      let toplam = 0, aktifGun = new Set();
 
       if (data) {
-        data.forEach(log => {
-          const tarih = new Date(log.created_at);
-          let gunIndex = tarih.getDay() - 1;
-          if (gunIndex === -1) gunIndex = 6; 
-
-          const dk = log.duration_minutes;
-          
-          const tarihString = tarih.toISOString().split('T')[0];
-          aktifGunler.add(tarihString);
-
-          if (log.activity_type === 'Ders') {
-            haftalikDers[gunIndex] += dk;
-            toplamDersDakika += dk;
-          } else {
-            haftalikEglence[gunIndex] += dk;
-            toplamEglenceDakika += dk;
-          }
+        data.forEach(l => {
+          const t = new Date(l.created_at);
+          let idx = t.getDay() - 1; if (idx === -1) idx = 6;
+          toplam += l.duration_minutes;
+          aktifGun.add(t.toISOString().split('T')[0]);
+          if (l.activity_type === 'Ders') dList[idx] += l.duration_minutes;
+          else eList[idx] += l.duration_minutes;
         });
       }
 
-      const toplamGenelDakika = toplamDersDakika + toplamEglenceDakika;
-      const gunSayisi = aktifGunler.size || 1;
+      const ort = Math.round(toplam / (aktifGun.size || 1));
+      document.getElementById("avgDisplay").textContent = ort >= 60 ? `${Math.floor(ort/60)} sa ${ort%60} dk` : `${ort} dk`;
 
-      // Ortalama Hesaplamaları
-      const gunlukOrtalamaGenel = Math.round(toplamGenelDakika / gunSayisi);
-      const gunlukOrtalamaDers = Math.round(toplamDersDakika / gunSayisi);
-      const gunlukOrtalamaEglence = Math.round(toplamEglenceDakika / gunSayisi);
-
-      // Yüzdelik Dağılımlar
-      const dersYuzde = toplamGenelDakika > 0 ? Math.round((toplamDersDakika / toplamGenelDakika) * 100) : 0;
-      const eglenceYuzde = toplamGenelDakika > 0 ? Math.round((toplamEglenceDakika / toplamGenelDakika) * 100) : 0;
-
-      // Arayüzü Güncelleme
-      document.getElementById("avgDisplay").textContent = formatMinutes(gunlukOrtalamaGenel);
-      document.getElementById("avgDersDisplay").textContent = formatMinutes(gunlukOrtalamaDers);
-      document.getElementById("avgEglenceDisplay").textContent = formatMinutes(gunlukOrtalamaEglence);
-      
-      document.getElementById("pctDersDisplay").textContent = `%${dersYuzde}`;
-      document.getElementById("pctEglenceDisplay").textContent = `%${eglenceYuzde}`;
-
-      // GRAFİK MOTORU
       const ctx = document.getElementById('iphoneBarChart').getContext('2d');
-      
       if (myChart) {
-        myChart.data.datasets[0].data = haftalikDers;
-        myChart.data.datasets[1].data = haftalikEglence;
+        myChart.data.datasets[0].data = dList;
+        myChart.data.datasets[1].data = eList;
         myChart.update();
       } else {
         myChart = new Chart(ctx, {
@@ -424,53 +382,17 @@
           data: {
             labels: gunEtiketleri,
             datasets: [
-              {
-                label: 'Ders Çalışma',
-                data: haftalikDers,
-                backgroundColor: '#34d399',
-                borderRadius: 4,
-                borderSkipped: false
-              },
-              {
-                label: 'Eğlence & Sosyal Medya',
-                data: haftalikEglence,
-                backgroundColor: '#f43f5e',
-                borderRadius: 4,
-                borderSkipped: false
-              }
+              { label: 'Ders', data: dList, backgroundColor: '#34d399', borderRadius: 4 },
+              { label: 'Eğlence', data: eList, backgroundColor: '#f43f5e', borderRadius: 4 }
             ]
           },
           options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             scales: {
-              x: {
-                stacked: true,
-                grid: { display: false },
-                border: { display: false },
-                ticks: { color: '#94a3b8', font: { size: 12, weight: '600' } }
-              },
-              y: {
-                stacked: true,
-                grid: { color: '#f1f5f9' },
-                border: { display: false },
-                ticks: {
-                  color: '#94a3b8',
-                  font: { size: 11 },
-                  callback: function(value) { return value + ' dk'; }
-                }
-              }
+              x: { stacked: true, grid: { display: false } },
+              y: { stacked: true, grid: { color: '#f1f5f9' }, ticks: { callback: v => v + 'dk' } }
             },
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    return `${context.dataset.label}: ${context.raw} dk`;
-                  }
-                }
-              }
-            }
+            plugins: { legend: { display: false } }
           }
         });
       }
