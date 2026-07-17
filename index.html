@@ -46,10 +46,15 @@
     .msg { margin-bottom: 8px; font-size: 13px; background: #f1f5f9; padding: 8px 10px; border-radius: 10px; width: fit-content; max-width: 85%; line-height: 1.3; }
     .msg.me { background: #e0e7ff; color: #1e1b4b; margin-left: auto; }
     .msg-sender { font-weight: 700; font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 2px; cursor: pointer; }
+    
+    .admin-tag { background-color: #ef4444; color: white; font-size: 9px; padding: 2px 5px; border-radius: 4px; font-weight: 700; margin-left: 5px; vertical-align: middle; }
 
     .leaderboard-list { flex: 1; overflow-y: auto; border: 1px solid #f1f5f9; border-radius: 10px; padding: 8px; background: #f8fafc; max-height: 250px; }
     .leaderboard-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
-    .user-badge { font-weight: 600; color: #334155; cursor: pointer; }
+    .user-badge { font-weight: 600; color: #334155; cursor: pointer; display: flex; align-items: center; }
+
+    .admin-panel-box { border: 1.5px dashed #cbd5e1; padding: 10px; border-radius: 10px; margin-bottom: 10px; background: #f8fafc; max-height: 150px; overflow-y: auto; }
+    .admin-user-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-bottom: 6px; background: white; padding: 6px; border-radius: 6px; border: 1px solid #e2e8f0; }
 
     .timer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
     .timer-card { background: #f8fafc; border: 1.5px solid #f1f5f9; padding: 10px; border-radius: 10px; text-align: center; }
@@ -114,10 +119,17 @@
       </div>
     </div>
 
-    <!-- LİDERLİK -->
+    <!-- LİDERLİK & ADMIN PANELİ -->
     <div class="panel">
       <h3>🏆 Arkadaş Liderliği</h3>
       <p class="subtitle">Herkesin toplam süreleri.</p>
+      
+      <!-- Sadece Adminlere Gözükecek Yönetim Paneli -->
+      <div id="adminControlPanel" class="hidden" style="margin-bottom: 10px;">
+        <h4 style="font-size: 12px; color: #ef4444; margin-bottom: 4px; font-weight: 700;">⚙️ Admin Yönetim Paneli</h4>
+        <div class="admin-panel-box" id="adminUsersList"></div>
+      </div>
+
       <div class="leaderboard-list" id="leaderboardList"></div>
     </div>
 
@@ -158,6 +170,7 @@
     const WEB3FORMS_KEY = "387c3113-1e0f-4f5c-ad17-4bf2a9ca3170"; 
     
     let currentUserName = localStorage.getItem("chat_username") || "";
+    let isAdmin = false;
     let isRegisterMode = false;
     let activeChatPartner = null;
     let activeType = null;
@@ -165,11 +178,17 @@
     let secondsElapsed = 0;
     let myChart = null;
 
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', async () => {
       if (currentUserName) {
+        await checkAdminStatus(currentUserName);
         enterApp(currentUserName);
       }
     });
+
+    async function checkAdminStatus(name) {
+      let { data: user } = await _supabase.from('app_users').select('is_admin').eq('name', name).maybeSingle();
+      isAdmin = user ? (user.is_admin === true) : false;
+    }
 
     function showAlert(message, type = 'error') {
       const alertBox = document.getElementById("alertBox");
@@ -195,12 +214,9 @@
       if (!name || !password) return;
 
       if (isRegisterMode) {
-        // RLS veya önbellek engeline takılmamak için doğrudan ekleme deniyoruz.
-        // Eğer veritabanında unique kısıtlaması varsa hata dönecektir, yoksa doğrudan ekler.
-        let { error } = await _supabase.from('app_users').insert([{ name: name, password: password, is_approved: false }]);
+        let { error } = await _supabase.from('app_users').insert([{ name: name, password: password, is_approved: false, is_admin: false }]);
         
         if (error) {
-          // Eğer hata benzersizlik (unique) kısıtlamasından kaynaklanıyorsa kullanıcı zaten vardır
           if (error.code === '23505' || error.message.includes('duplicate') || error.message.includes('already exists')) {
             showAlert("Bu kullanıcı adı zaten alınmış!", 'error');
           } else {
@@ -216,7 +232,7 @@
             body: JSON.stringify({
               access_key: WEB3FORMS_KEY,
               subject: `Yeni Kullanıcı Kayıt Başvurusu: ${name}`,
-              message: `Yeni bir kullanıcı kayıt olmak istiyor.\n\nKullanıcı Adı: ${name}\n\nBu kullanıcıyı onaylamak için Supabase paneline giriş yapıp app_users tablosundan is_approved değerini true yapabilirsiniz.`
+              message: `Yeni bir kullanıcı kayıt olmak istiyor.\n\nKullanıcı Adı: ${name}\n\nBu kullanıcıyı onaylamak için Supabase paneline giriş yapıp app_users tablosundan is_approved değerini true yapabilir veya uygulama içindeki panelden onaylayabilirsin.`
             })
           });
         } catch (mailErr) {
@@ -238,15 +254,24 @@
         }
 
         localStorage.setItem("chat_username", name);
+        await checkAdminStatus(name);
         enterApp(name);
       }
     }
 
-    function enterApp(name) {
+    async function enterApp(name) {
       currentUserName = name;
       document.getElementById("authContainer").classList.add("hidden");
       document.getElementById("appMainPanel").classList.remove("hidden");
-      document.getElementById("userWelcomeText").textContent = `Oturum: ${currentUserName}`;
+      
+      let tagHtml = isAdmin ? ` <span class="admin-tag">ADMIN</span>` : "";
+      document.getElementById("userWelcomeText").innerHTML = `Oturum: ${currentUserName}${tagHtml}`;
+
+      if (isAdmin) {
+        document.getElementById("adminControlPanel").classList.remove("hidden");
+        loadAdminPanelUsers();
+      }
+
       initApp();
     }
 
@@ -262,7 +287,43 @@
       setInterval(() => {
         loadMessages();
         loadLeaderboard();
+        if (isAdmin) loadAdminPanelUsers();
       }, 3000);
+    }
+
+    async function loadAdminPanelUsers() {
+      const { data } = await _supabase.from('app_users').select('name, is_approved, is_admin');
+      const box = document.getElementById("adminUsersList");
+      if (!data) return;
+
+      box.innerHTML = "";
+      data.forEach(u => {
+        if (u.is_admin) return;
+
+        const div = document.createElement("div");
+        div.className = "admin-user-row";
+        
+        let statusText = u.is_approved ? '<span style="color:green;">Onaylı</span>' : '<span style="color:orange;">Onay Bekliyor</span>';
+        let actionBtn = u.is_approved 
+          ? `<button onclick="banUser('${u.name}')" style="background:#ef4444; padding:3px 6px; font-size:10px; width:auto;">Banla / Sil</button>`
+          : `<button onclick="approveUser('${u.name}')" style="background:#10b981; padding:3px 6px; font-size:10px; width:auto;">Onayla</button>`;
+
+        div.innerHTML = `<span><b>${u.name}</b> (${statusText})</span> ${actionBtn}`;
+        box.appendChild(div);
+      });
+    }
+
+    async function approveUser(name) {
+      await _supabase.from('app_users').update({ is_approved: true }).eq('name', name);
+      loadAdminPanelUsers();
+    }
+
+    async function banUser(name) {
+      if (confirm(`${name} adlı kullanıcıyı silmek/banlamak istediğine emin misin?`)) {
+        await _supabase.from('app_users').delete().eq('name', name);
+        loadAdminPanelUsers();
+        loadLeaderboard();
+      }
     }
 
     function switchChatMode(partnerName) {
@@ -311,12 +372,18 @@
     }
 
     async function loadLeaderboard() {
-      const { data } = await _supabase.from('time_logs').select('email, duration_minutes');
+      const { data: usersData } = await _supabase.from('app_users').select('name, is_admin');
+      const { data: logsData } = await _supabase.from('time_logs').select('email, duration_minutes');
       const listEl = document.getElementById("leaderboardList");
-      if (!data) return;
+      if (!logsData) return;
+
+      let adminSet = new Set();
+      if (usersData) {
+        usersData.forEach(u => { if (u.is_admin) adminSet.add(u.name); });
+      }
 
       let userTotals = {};
-      data.forEach(log => { userTotals[log.email] = (userTotals[log.email] || 0) + log.duration_minutes; });
+      logsData.forEach(log => { userTotals[log.email] = (userTotals[log.email] || 0) + log.duration_minutes; });
 
       listEl.innerHTML = "";
       Object.keys(userTotals).forEach(name => {
@@ -325,9 +392,11 @@
         const dk = total % 60;
         const timeStr = sa > 0 ? `${sa} sa ${dk} dk` : `${dk} dk`;
 
+        let tag = adminSet.has(name) ? ` <span class="admin-tag" style="font-size:8px;">ADMIN</span>` : "";
+
         const div = document.createElement("div");
         div.className = "leaderboard-item";
-        div.innerHTML = `<span class="user-badge" onclick="switchChatMode('${name}')">👤 ${name}</span><strong style="color:var(--primary);">${timeStr}</strong>`;
+        div.innerHTML = `<span class="user-badge" onclick="switchChatMode('${name}')">👤 ${name}${tag}</span><strong style="color:var(--primary);">${timeStr}</strong>`;
         listEl.appendChild(div);
       });
     }
