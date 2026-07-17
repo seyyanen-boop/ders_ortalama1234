@@ -89,18 +89,22 @@
     <div style="font-size:12px; color:#334155;" id="toastMessage"></div>
   </div>
 
-  <!-- GİRİŞ / İSİM PANELİ -->
+  <!-- GİRİŞ PANELİ (İSİM + ŞİFRE) -->
   <div class="container" id="authContainer">
     <div id="alertBox" class="alert"></div>
 
-    <h2>Sisteme Giriş</h2>
-    <p class="subtitle">Adını yaz, onaylandıysan direkt bağlan.</p>
-    <form onsubmit="handleNameLogin(event)">
+    <h2>Özel Alan Girişi</h2>
+    <p class="subtitle">Adını ve belirlediğiniz şifreyi gir.</p>
+    <form onsubmit="handleLoginWithPassword(event)">
       <div class="form-group">
         <label>Adın / Takma Adın</label>
         <input type="text" id="usernameInput" required placeholder="Örn: Eymen">
       </div>
-      <button type="submit">Giriş Yap / Kaydol</button>
+      <div class="form-group">
+        <label>Şifre</label>
+        <input type="password" id="passwordInput" required placeholder="••••••••">
+      </div>
+      <button type="submit">Giriş Yap</button>
     </form>
   </div>
 
@@ -176,10 +180,10 @@
     let myChart = null;
     let lastCheckedMsgId = 0;
 
-    // Sayfa açılır açılışta daha önce giriş yaptıysa ve onaylıysa direkt içeri al
+    // Sayfa açıldığında daha önce giriş yapıldıysa doğrudan başlat
     window.addEventListener('DOMContentLoaded', () => {
       if (currentUserName) {
-        checkUserApprovalAndEnter(currentUserName, true);
+        enterApp(currentUserName);
       }
     });
 
@@ -196,50 +200,40 @@
       alertBox.style.display = "block";
     }
 
-    async function handleNameLogin(e) {
+    async function handleLoginWithPassword(e) {
       e.preventDefault();
       const name = document.getElementById("usernameInput").value.trim();
-      if (!name) return;
-      await checkUserApprovalAndEnter(name, false);
-    }
+      const password = document.getElementById("passwordInput").value.trim();
+      if (!name || !password) return;
 
-    async function checkUserApprovalAndEnter(name, isAutoLogin) {
-      // Önce veritabanında bu kullanıcı var mı bakalım
+      // Veritabanından bu isimli kullanıcıyı çekelim
       let { data, error } = await _supabase.from('app_users').select('*').eq('name', name).single();
 
       if (!data) {
-        // Kullanıcı hiç yoksa tabloya otomatik ekleyelim (is_approved: false olarak düşer)
-        const insertRes = await _supabase.from('app_users').insert([{ name: name, is_approved: false }]);
-        if (insertRes.error) {
-          showAlert("Bir hata oluştu: " + insertRes.error.message, 'error');
-          return;
-        }
-        showAlert("Adın kaydedildi! Yönetici onay verene kadar beklemelisin.", 'warning');
-        localStorage.removeItem("chat_username");
+        showAlert("Bu isim sistemde kayıtlı değil!", 'error');
         return;
       }
 
-      if (data.is_approved) {
-        // Onaylıysa içeri al
-        currentUserName = name;
+      // Şifre kontrolü
+      if (data.password === password) {
         localStorage.setItem("chat_username", name);
-        document.getElementById("authContainer").classList.add("hidden");
-        document.getElementById("appMainPanel").classList.remove("hidden");
-        document.getElementById("userWelcomeText").textContent = `Oturum: ${currentUserName}`;
-        
-        if (Notification.permission !== "granted") {
-          document.getElementById("notifBanner").classList.remove("hidden");
-        }
-
-        initApp();
+        enterApp(name);
       } else {
-        // Onaylı değilse
-        if (!isAutoLogin) {
-          showAlert("Bu isim henüz onaylanmamış. Yöneticinin onaylamasını bekleyin.", 'warning');
-        } else {
-          localStorage.removeItem("chat_username");
-        }
+        showAlert("Hatalı şifre!", 'error');
       }
+    }
+
+    function enterApp(name) {
+      currentUserName = name;
+      document.getElementById("authContainer").classList.add("hidden");
+      document.getElementById("appMainPanel").classList.remove("hidden");
+      document.getElementById("userWelcomeText").textContent = `Oturum: ${currentUserName}`;
+      
+      if (Notification.permission !== "granted") {
+        document.getElementById("notifBanner").classList.remove("hidden");
+      }
+
+      initApp();
     }
 
     function requestNotificationPermission() {
@@ -279,7 +273,6 @@
       chatBox.innerHTML = "";
 
       data.forEach(m => {
-        // Not: Eskiden email tutuyorduk, şimdi 'email' kolonunu isim (username) tutmak için kullanıyoruz
         const isDirect = m.recipient && ((m.email === currentUserName && m.recipient === activeChatPartner) || (m.email === activeChatPartner && m.recipient === currentUserName));
         const isGeneral = !m.recipient && activeChatPartner === null;
 
@@ -393,6 +386,7 @@
       let toplam = 0, aktifGun = new Set();
 
       if (data) {
+        data.data.forEach?.(l => {}) // Güvenlik önlemi
         data.forEach(l => {
           const t = new Date(l.created_at);
           let idx = t.getDay() - 1; if (idx === -1) idx = 6;
