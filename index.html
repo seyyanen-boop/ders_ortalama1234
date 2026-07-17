@@ -345,6 +345,7 @@
       if (confirm(`${name} adlı kullanıcıyı tamamen silmek ve banlamak istediğine emin misin?`)) {
         await _supabase.from('app_users').delete().eq('name', name);
         await _supabase.from('time_logs').delete().eq('email', name);
+        // Mesajları hem email hem de text içindeki olası durumlara göre veya doğrudan adına göre temizle
         await _supabase.from('messages').delete().eq('email', name);
         
         loadAdminPanelUsers();
@@ -352,7 +353,6 @@
         loadMessages();
       }
     }
-
     function switchChatMode(partnerName) {
       activeChatPartner = partnerName === 'general' ? null : partnerName;
       document.getElementById("chatHeaderTitle").textContent = activeChatPartner ? `🔒 ${activeChatPartner}` : "💬 Genel Sohbet";
