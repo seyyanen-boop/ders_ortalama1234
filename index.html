@@ -7,7 +7,7 @@
 
   <!-- OTOMATİK GÜNCELLEME KONTROLÜ -->
   <script>
-    const CURRENT_VERSION = "1.6.1"; 
+    const CURRENT_VERSION = "1.6.2"; 
 
     async function checkForUpdates() {
       try {
@@ -251,7 +251,7 @@
         </div>
       </div>
 
-      <!-- GEMİNİ KOÇ KUTUSU (Key Otomatik Gömülü) -->
+      <!-- GEMİNİ KOÇ KUTUSU -->
       <div class="coach-box">
         <div class="coach-header">
           <span>🤖 Gemini Koç (Aktif)</span>
@@ -291,12 +291,33 @@
       }
     });
 
+    function checkNotificationStatus() {
+      const btn = document.getElementById("notifPermissionBtn");
+      if ('Notification' in window) {
+        if (Notification.permission === 'granted') {
+          if (btn) btn.style.display = "none";
+        } else {
+          if (btn) btn.style.display = "block";
+        }
+      }
+    }
+
+    function requestNotificationPermissionUser() {
+      if ('Notification' in window) {
+        Notification.requestPermission().then(permission => {
+          checkNotificationStatus();
+          if (permission === 'granted') alert("Bildirimler başarıyla açıldı!");
+          else alert("Bildirim izni verilmedi.");
+        });
+      }
+    }
+
     const SUPABASE_URL = "https://yqhdgogfxcycjilfillb.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_aJVa7IVB6HfcQYug4JNeow_RwnGZaB7";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const WEB3FORMS_KEY = "387c3113-1e0f-4f5c-ad17-4bf2a9ca3170"; 
     
-    // Sabit API Key Entegrasyonu
+    // Temizlenmiş Sabit API Key Entegrasyonu
     const HARDCODED_GEMINI_KEY = "AQ.Ab8RN6K53TkHBTvD4VKCBqTtWz5AwTaQa7DAtHnpNPnKioFB1g";
     
     let currentUserName = localStorage.getItem("chat_username") || "";
