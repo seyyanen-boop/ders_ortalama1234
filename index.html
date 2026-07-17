@@ -153,9 +153,9 @@
   <script>
     const SUPABASE_URL = "https://yqhdgogfxcycjilfillb.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_aJVa7IVB6HfcQYug4JNeow_RwnGZaB7";
-    const _supabase = supabase.Client ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    // Web3Forms API Anahtarın (Geçmiş projendeki anahtar)
+    // Web3Forms API Anahtarın
     const WEB3FORMS_KEY = "YOUR_WEB3FORMS_ACCESS_KEY"; 
     
     let currentUserName = localStorage.getItem("chat_username") || "";
@@ -202,14 +202,13 @@
           return;
         }
 
-        // is_approved alanı false olarak kaydedilir (Onay bekler)
         let { error } = await _supabase.from('app_users').insert([{ name: name, password: password, is_approved: false }]);
         if (error) {
           showAlert("Kayıt oluşturulurken hata oluştu.", 'error');
           return;
         }
 
-        // Web3Forms ile mail bildirimi gönder
+        // Web3Forms ile eski detaylı formatında mail gönderimi
         try {
           await fetch("https://api.web3forms.com/submit", {
             method: "POST",
@@ -217,7 +216,7 @@
             body: JSON.stringify({
               access_key: WEB3FORMS_KEY,
               subject: `Yeni Kullanıcı Kayıt Başvurusu: ${name}`,
-              message: `${name} adlı kullanıcı sisteminize kayıt olmak için başvurdu. Supabase panelinden onaylayabilirsiniz.`
+              message: `Yeni bir kullanıcı kayıt olmak istiyor.\n\nKullanıcı Adı: ${name}\n\nBu kullanıcıyı onaylamak için Supabase paneline giriş yapıp app_users tablosundan is_approved değerini true yapabilirsiniz.`
             })
           });
         } catch (mailErr) {
@@ -233,7 +232,6 @@
           return;
         }
 
-        // Onay kontrolü: is_approved false veya null ise içeri almaz
         if (user.is_approved === false || user.is_approved === null) {
           showAlert("Hesabınız henüz onaylanmadı. Lütfen yöneticinin onaylamasını bekleyin.", 'error');
           return;
