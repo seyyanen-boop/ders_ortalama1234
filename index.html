@@ -7,7 +7,7 @@
 
   <!-- OTOMATİK GÜNCELLEME KONTROLÜ -->
   <script>
-    const CURRENT_VERSION = "1.7.0"; 
+    const CURRENT_VERSION = "1.7.1"; 
 
     async function checkForUpdates() {
       try {
@@ -130,7 +130,6 @@
 
     .status-bar-box { background: var(--bg); border: 1px solid var(--border); padding: 6px 10px; border-radius: 8px; margin-bottom: 8px; display: flex; gap: 6px; align-items: center; font-size: 11px; }
 
-    /* KOÇ PANELİ */
     .coach-box { border: 1.5px solid var(--primary); background: var(--bg); padding: 8px; border-radius: 10px; font-size: 11px; }
     .coach-header { font-weight: 700; color: var(--primary); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
     .coach-msg { color: var(--text); font-style: italic; min-height: 25px; line-height: 1.3; margin-bottom: 6px; max-height: 90px; overflow-y: auto; }
@@ -139,7 +138,6 @@
 </head>
 <body data-theme="light">
 
-  <!-- GİRİŞ / KAYIT EKRANI -->
   <div class="container" id="authContainer">
     <div style="display: flex; justify-content: flex-end; margin-bottom: 5px;">
       <button onclick="toggleDarkMode()" style="width: auto; padding: 4px 8px; font-size: 10px; background: var(--text-muted);">🌙 Tema</button>
@@ -166,10 +164,8 @@
     </p>
   </div>
 
-  <!-- ANA UYGULAMA PANELİ -->
   <div class="app-container hidden" id="appMainPanel">
     
-    <!-- SOHBET -->
     <div class="panel">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
         <h3 id="chatHeaderTitle" style="margin:0;">💬 Genel Sohbet</h3>
@@ -197,7 +193,6 @@
       </div>
     </div>
 
-    <!-- LİDERLİK & ADMIN PANELİ -->
     <div class="panel">
       <h3>🏆 Arkadaş Liderliği & Altın Yarışı</h3>
       <p class="subtitle">Aylık saat hedefleri ve gram altın ödülü.</p>
@@ -210,7 +205,6 @@
       <div class="leaderboard-list" id="leaderboardList"></div>
     </div>
 
-    <!-- EKRAN SÜRESİ, SAYAÇ & KOÇ -->
     <div class="panel">
       <h3>📊 Ekran Süresi & Sayaç</h3>
       <p class="subtitle">Süre yönetimi.</p>
@@ -255,7 +249,6 @@
         </div>
       </div>
 
-      <!-- GROQ KOÇ KUTUSU -->
       <div class="coach-box">
         <div class="coach-header">
           <span>🤖 Akıllı Koç (Groq Aktif)</span>
@@ -320,7 +313,6 @@
     const SUPABASE_ANON_KEY = "sb_publishable_aJVa7IVB6HfcQYug4JNeow_RwnGZaB7";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const WEB3FORMS_KEY = "387c3113-1e0f-4f5c-ad17-4bf2a9ca3170"; 
-    
     const GROQ_API_KEY = "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";
     
     let currentUserName = localStorage.getItem("chat_username") || "";
@@ -704,7 +696,7 @@
     }
 
     async function loadLeaderboard() {
-      const { data: usersData } = await _supabase.from('app_users').select('name, is_admin, status_message, last_seen');
+      const { data: usersData } = await _supabase.from('app_users').select('name,is_admin,status_message,last_seen');
       const { data: logsData } = await _supabase.from('time_logs').select('email, duration_minutes, created_at');
       const currentMonth = getCurrentMonthYear();
       const { data: goalsData } = await _supabase.from('monthly_goals').select('*').eq('month_year', currentMonth);
