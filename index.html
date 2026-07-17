@@ -180,7 +180,7 @@
       isRegisterMode = !isRegisterMode;
       document.getElementById("alertBox").style.display = "none";
       document.getElementById("authTitle").textContent = isRegisterMode ? "Kayıt Ol" : "Giriş Yap";
-      document.getElementById("authSubtitle").textContent = isRegisterMode ? "Kendine yeni bir hesap oluştur." : "Şifrenle giriş yap.";
+      document.getElementById("authSubtitle").textContent = isRegisterMode ? "Hesap oluştur, yönetici onayından sonra girebilirsin." : "Şifrenle giriş yap.";
       document.getElementById("authBtn").textContent = isRegisterMode ? "Kayıt Ol" : "Giriş Yap";
       document.getElementById("toggleText").textContent = isRegisterMode ? "Zaten hesabın var mı?" : "Hesabın yok mu?";
       document.getElementById("toggleLink").textContent = isRegisterMode ? "Giriş Yap" : "Kayıt Ol";
@@ -199,19 +199,25 @@
           return;
         }
 
-        let { error } = await _supabase.from('app_users').insert([{ name: name, password: password, is_approved: true }]);
+        // is_approved alanı false olarak kaydedilir (Otomatik onaylanmaz)
+        let { error } = await _supabase.from('app_users').insert([{ name: name, password: password, is_approved: false }]);
         if (error) {
           showAlert("Kayıt oluşturulurken hata oluştu.", 'error');
           return;
         }
 
-        localStorage.setItem("chat_username", name);
-        enterApp(name);
+        showAlert("Kayıt başarılı! Yönetici onayından sonra giriş yapabilirsin.", 'success');
       } else {
         let { data: user, error } = await _supabase.from('app_users').select('*').eq('name', name).maybeSingle();
 
         if (!user || user.password !== password) {
           showAlert("Hatalı kullanıcı adı veya şifre!", 'error');
+          return;
+        }
+
+        // Onay kontrolü: is_approved false ise içeri almaz
+        if (user.is_approved === false || user.is_approved === null) {
+          showAlert("Hesabınız henüz onaylanmadı. Lütfen yöneticinin onaylamasını bekleyin.", 'error');
           return;
         }
 
