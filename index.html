@@ -424,7 +424,7 @@
 
       checkNotificationStatus();
       loadMyStatus();
-      updateHeartbeat();
+      await updateHeartbeat();
 
       if (isAdmin) {
         document.getElementById("adminControlPanel").classList.remove("hidden");
@@ -724,7 +724,6 @@
           
           if (u.last_seen) {
             const lastSeenTime = new Date(u.last_seen).getTime();
-            // Son 15 saniye yerine son 45 saniye içinde sinyal verdiyse çevrimiçi say (bağlantı gecikmelerine karşı tolerans)
             onlineMap[u.name] = (now - lastSeenTime < 45000);
           } else {
             onlineMap[u.name] = false;
