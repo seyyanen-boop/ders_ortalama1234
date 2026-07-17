@@ -1,6 +1,44 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Akıllı Çalışma ve Sosyal Alan</title>
+
+  <script>
+    const CURRENT_VERSION = "1.2.0"; 
+
+    async function checkForUpdates() {
+      try {
+        const response = await fetch('./index.html?v=' + new Date().getTime());
+        const htmlText = await response.text();
+        const match = htmlText.match(/const CURRENT_VERSION = "([^"]+)"/);
+        if (match && match[1]) {
+          const latestVersion = match[1];
+          if (latestVersion !== CURRENT_VERSION) {
+            if (confirm("Uygulamanın yeni bir sürümü yayınlandı! Şimdi güncellensin mi?")) {
+              if ('caches' in window) {
+                caches.keys().then(names => {
+                  names.forEach(name => caches.delete(name));
+                });
+              }
+              window.location.reload(true);
+            }
+          }
+        }
+      } catch (err) {
+        console.log("Güncelleme kontrol edilemedi:", err);
+      }
+    }
+
+    window.addEventListener('load', () => {
+      checkForUpdates();
+    });
+  </script>
+  <meta name="theme-color" content="#4f46e5">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Akıllı Çalışma ve Sosyal Alan</title>
