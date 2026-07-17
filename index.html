@@ -7,7 +7,7 @@
 
   <!-- OTOMATİK GÜNCELLEME KONTROLÜ -->
   <script>
-    const CURRENT_VERSION = "1.6.3"; 
+    const CURRENT_VERSION = "1.6.4"; 
 
     async function checkForUpdates() {
       try {
@@ -251,13 +251,13 @@
         </div>
       </div>
 
-      <!-- OPENROUTER KOÇ KUTUSU -->
+      <!-- GROQ KOÇ KUTUSU -->
       <div class="coach-box">
         <div class="coach-header">
-          <span>🤖 Akıllı Koç (OpenRouter Aktif)</span>
+          <span>🤖 Akıllı Koç (Groq Aktif)</span>
           <button onclick="askGeminiCoach('durumumu analiz et')" style="width: auto; padding: 2px 6px; font-size: 9px; background: var(--primary);">Analiz Et</button>
         </div>
-        <div class="coach-msg" id="coachMessageText">OpenRouter API Key başarıyla entegre edildi. Hazırım!</div>
+        <div class="coach-msg" id="coachMessageText">Groq API Key başarıyla entegre edildi. Hazırım!</div>
         <div class="coach-input-row">
           <input type="text" id="coachQuestionInput" placeholder="Koça bir şeyler sor..." style="padding: 6px; font-size: 11px;" onkeypress="if(event.key==='Enter') askGeminiCoach()">
           <button onclick="askGeminiCoach()" style="width: 55px; padding: 6px; font-size: 11px;">Sor</button>
@@ -317,8 +317,8 @@
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const WEB3FORMS_KEY = "387c3113-1e0f-4f5c-ad17-4bf2a9ca3170"; 
     
-    // OpenRouter API Key Entegrasyonu
-    const OPENROUTER_API_KEY = "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";
+    // GROQ API Key Entegrasyonu
+    const GROQ_API_KEY = "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";
     
     let currentUserName = localStorage.getItem("chat_username") || "";
     let isAdmin = false;
@@ -461,7 +461,7 @@
       }, 1000);
     }
 
-    // OPENROUTER API BAĞLANTISI
+    // GROQ API BAĞLANTISI
     async function askGeminiCoach(customPrompt = null) {
       const coachEl = document.getElementById("coachMessageText");
       const inputEl = document.getElementById("coachQuestionInput");
@@ -485,14 +485,14 @@
       const systemPrompt = `Sen bu uygulamanın içindeki samimi, zeki, esprili ve gerektiğinde tatlı sert laf sokan bir yapay zeka koçusun. Kullanıcının adı: ${currentUserName}. Anlık istatistikleri: ${dersTotal} dakika ders, ${eglenceTotal} dakika eğlence/ekran süresi. Yanıtların doğal, tekrara düşmeyen, akıllıca ve tam bir arkadaş tonunda olsun.`;
 
       try {
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "Authorization": `Bearer ${GROQ_API_KEY}`,
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            model: "deepseek/deepseek-chat", // Veya uygun bir açık model
+            model: "llama-3.3-70b-versatile",
             messages: [
               { role: "system", content: systemPrompt },
               { role: "user", content: userQuery }
@@ -504,7 +504,7 @@
         if (resData.choices && resData.choices[0].message.content) {
           coachEl.textContent = resData.choices[0].message.content;
         } else {
-          coachEl.textContent = "OpenRouter'dan yanıt alınamadı.";
+          coachEl.textContent = "Groq'tan yanıt alınamadı.";
         }
       } catch (err) {
         console.error(err);
