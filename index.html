@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Akıllı Çalışma ve Sosyal Alan</title>
   <meta name="theme-color" content="#4f46e5">
+  <link rel="manifest" href="manifest.json">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -163,6 +164,17 @@
   </div>
 
   <script>
+    // Service Worker Kaydı (Bildirimler için)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(err => console.log('SW kayıt hatası:', err));
+    }
+
+    function requestNotificationPermission() {
+      if ('Notification' in window && Notification.permission !== 'granted') {
+        Notification.requestPermission();
+      }
+    }
+
     const SUPABASE_URL = "https://yqhdgogfxcycjilfillb.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_aJVa7IVB6HfcQYug4JNeow_RwnGZaB7";
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -177,8 +189,10 @@
     let timerInterval = null;
     let secondsElapsed = 0;
     let myChart = null;
+    let lastSeenMsgId = 0;
 
     window.addEventListener('DOMContentLoaded', async () => {
+      requestNotificationPermission();
       if (currentUserName) {
         await checkAdminStatus(currentUserName);
         enterApp(currentUserName);
@@ -285,7 +299,6 @@
       loadLeaderboard();
       loadStats();
       setInterval(async () => {
-        // Oturumu açık olan normal kullanıcı banlandıysa anında dışarı atar
         if (currentUserName && !isAdmin) {
           let { data: checkUser } = await _supabase.from('app_users').select('name').eq('name', currentUserName).maybeSingle();
           if (!checkUser) {
@@ -352,6 +365,25 @@
     async function loadMessages() {
       const { data } = await _supabase.from('messages').select('*').order('id', { ascending: true });
       if (!data) return;
+
+      // WhatsApp tarzı anlık bildirim kontrolü
+      if (data.length > 0) {
+        const latestMsg = data[data.length - 1];
+        if (lastSeenMsgId !== 0 && latestMsg.id > lastSeenMsgId && latestMsg.email !== currentUserName) {
+          const isTargetForMe = !latestMsg.recipient || latestMsg.recipient === currentUserName;
+          if (isTargetForMe) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+              navigator.serviceWorker.ready.then(reg => {
+                reg.showNotification(latestMsg.email, {
+                  body: latestMsg.text,
+                  icon: 'https://cdn-icons-png.flaticon.com/512/733/733585.png'
+                });
+              });
+            }
+          }
+        }
+        lastSeenMsgId = latestMsg.id;
+      }
 
       const chatBox = document.getElementById("chatBox");
       const isAtBottom = chatBox.scrollHeight - chatBox.clientHeight <= chatBox.scrollTop + 50;
