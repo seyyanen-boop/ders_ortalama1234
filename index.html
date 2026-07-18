@@ -919,6 +919,22 @@
         });
       }
     }
+  async function resetSeason() {
+  if (!isAdmin) return;
+  
+  if (confirm("DİKKAT: Tüm kullanıcıların süre kayıtları ve genel sohbet geçmişi kalıcı olarak silinecek. Emin misin?")) {
+    try {
+      // Supabase üzerinden tüm verileri temizle
+      await _supabase.from('time_logs').delete().neq('id', 0);
+      await _supabase.from('messages').delete().neq('id', 0);
+      
+      alert("Sezon başarıyla sıfırlandı!");
+      location.reload(); // Sayfayı yenile
+    } catch (err) {
+      alert("Hata oluştu: " + err.message);
+    }
+  }
+}
   </script>
 </body>
 </html>
