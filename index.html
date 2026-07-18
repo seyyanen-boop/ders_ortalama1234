@@ -461,16 +461,20 @@
     }
 
     function startRealTimeScreenTracker() {
-      setInterval(() => {
-        if (!document.hidden && currentUserName) {
-          realTimeSecondsAccumulator++;
-          if (realTimeSecondsAccumulator >= 60) {
-            realTimeSecondsAccumulator = 0;
-            saveTimeLog('Eglence', 1);
-          }
-        }
-      }, 1000);
+  // Eğer sadece ekran açıkken otomatik saymasını istemiyorsan, 
+  // şuraya bir kontrol değişkeni (örn: isAutoTrackingEnabled) ekleyebiliriz.
+  setInterval(() => {
+    // Sadece eğer kullanıcı "Eğlence" veya "Ders" timer'ını manuel başlatmadıysa 
+    // otomatik kaydı çalıştıracak bir mantık kurabiliriz.
+    if (!document.hidden && currentUserName && !timerInterval) { 
+      realTimeSecondsAccumulator++;
+      if (realTimeSecondsAccumulator >= 60) {
+        realTimeSecondsAccumulator = 0;
+        saveTimeLog('Eglence', 1);
+      }
     }
+  }, 1000);
+}
 
     async function askGeminiCoach(customPrompt = null) {
       const coachEl = document.getElementById("coachMessageText");
