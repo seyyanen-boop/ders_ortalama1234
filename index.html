@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Akıllı Çalışma ve Sosyal Alan</title>
 
-  <!-- OTOMATİK GÜNCELLEME KONTROLÜ -->
   <script>
     const CURRENT_VERSION = "1.7.1"; 
 
@@ -461,15 +460,8 @@
     }
 
     function startRealTimeScreenTracker() {
-      setInterval(() => {
-        if (!document.hidden && currentUserName) {
-          realTimeSecondsAccumulator++;
-          if (realTimeSecondsAccumulator >= 60) {
-            realTimeSecondsAccumulator = 0;
-            saveTimeLog('Eglence', 1);
-          }
-        }
-      }, 1000);
+      // Bu fonksiyon artık sadece sayacı (Eglence) manuel başlattığımızda veritabanına veri gönderir.
+      // Arka planda saniye sayma mantığı "toggleTimer" fonksiyonu içine taşınmıştır.
     }
 
     async function askGeminiCoach(customPrompt = null) {
@@ -667,15 +659,12 @@
       chatBox.innerHTML = "";
 
       data.forEach(m => {
-        const isDirect = m.recipient && ((m.email === currentUserName && m.recipient === activeChatPartner) || (m.email === activeChatPartner && m.recipient === currentUserName));
-        const isGeneral = !m.recipient && activeChatPartner === null;
-
-        if (isDirect || isGeneral) {
-          const isMe = m.email === currentUserName;
+        const isVisible = !m.recipient || (m.recipient === currentUserName && m.email === activeChatPartner) || (m.email === currentUserName && m.recipient === activeChatPartner) || (m.email === currentUserName && !activeChatPartner && !m.recipient);
+        
+        if (isVisible) {
           const div = document.createElement("div");
-          div.className = `msg ${isMe ? 'me' : ''}`;
-          let deleteBtn = isAdmin ? ` <button onclick="deleteSingleMessage(${m.id})" style="background:none; border:none; color:red; cursor:pointer; font-size:10px; margin-left:5px; font-weight:700;">[Sil]</button>` : "";
-          div.innerHTML = `<span class="msg-sender" onclick="switchChatMode('${m.email}')">${m.email}</span>${m.text}${deleteBtn}`;
+          div.className = `msg ${m.email === currentUserName ? 'me' : ''}`;
+          div.innerHTML = `<span class="msg-sender" onclick="switchChatMode('${m.email}')">${m.email}${m.recipient ? ' 🔒' : ''}</span>${m.text}`;
           chatBox.appendChild(div);
         }
       });
@@ -686,231 +675,87 @@
       const input = document.getElementById("msgInput");
       const text = input.value.trim();
       if (!text) return;
-
-      input.value = "";
+      
       const payload = { email: currentUserName, text: text };
       if (activeChatPartner) payload.recipient = activeChatPartner;
-
+      
       await _supabase.from('messages').insert([payload]);
+      input.value = "";
       loadMessages();
     }
 
     async function loadLeaderboard() {
-      const { data: usersData } = await _supabase.from('app_users').select('name,is_admin,status_message,last_seen');
-      const { data: logsData } = await _supabase.from('time_logs').select('email, duration_minutes, created_at');
-      const currentMonth = getCurrentMonthYear();
-      const { data: goalsData } = await _supabase.from('monthly_goals').select('*').eq('month_year', currentMonth);
-
-      const listEl = document.getElementById("leaderboardList");
-      if (!logsData) return;
-
-      let adminSet = new Set();
-      let statusMap = {};
-      let onlineMap = {};
-      const now = new Date().getTime();
-
-      if (usersData) {
-        usersData.forEach(u => { 
-          if (u.is_admin) adminSet.add(u.name); 
-          statusMap[u.name] = u.status_message || "";
-          
-          if (u.last_seen) {
-            const lastSeenTime = new Date(u.last_seen).getTime();
-            onlineMap[u.name] = (now - lastSeenTime < 45000);
-          } else {
-            onlineMap[u.name] = false;
-          }
-        });
-      }
-
-      let goalMap = {};
-      if (goalsData) {
-        goalsData.forEach(g => { goalMap[g.username] = g; });
-      }
-
-      let userTotals = {};
-      let userMonthlyTotals = {};
-
-      logsData.forEach(log => { 
-        userTotals[log.email] = (userTotals[log.email] || 0) + log.duration_minutes; 
-        if (log.created_at && log.created_at.startsWith(currentMonth)) {
-          userMonthlyTotals[log.email] = (userMonthlyTotals[log.email] || 0) + log.duration_minutes;
-        }
-      });
-
-      if (currentUserName && goalMap[currentUserName]) {
-        const targetMins = goalMap[currentUserName].target_minutes;
-        const targetHours = (targetMins / 60).toFixed(1).replace('.0', '');
-        document.getElementById("goalDisplay").textContent = `🎯 Aylık Hedef: ${targetHours} sa`;
-      } else {
-        document.getElementById("goalDisplay").textContent = `🎯 Aylık Hedef: Belirlenmedi`;
-      }
-
-      listEl.innerHTML = "";
-      Object.keys(userTotals).forEach(name => {
-        const total = userTotals[name];
-        const sa = Math.floor(total / 60);
-        const dk = total % 60;
-        const timeStr = sa > 0 ? `${sa} sa ${dk} dk` : `${dk} dk`;
-
-        let tag = adminSet.has(name) ? ` <span class="admin-tag" style="font-size:8px;">ADMIN</span>` : "";
-        let goldBadge = (goalMap[name] && goalMap[name].gold_won) ? ` <span style="background:#f59e0b; color:white; font-size:8px; padding:2px 4px; border-radius:4px; font-weight:700;">🏆 1 Gr Altın</span>` : "";
+      const { data: users } = await _supabase.from('app_users').select('name, last_seen');
+      const { data: logs } = await _supabase.from('time_logs').select('*');
+      const { data: goals } = await _supabase.from('monthly_goals').select('*').eq('month_year', getCurrentMonthYear());
+      
+      const list = document.getElementById("leaderboardList");
+      list.innerHTML = "";
+      
+      const goalMap = {};
+      goals.forEach(g => goalMap[g.username] = g);
+      
+      users.forEach(u => {
+        const userLogs = logs.filter(l => l.email === u.name);
+        const totalMins = userLogs.reduce((sum, l) => sum + l.duration_minutes, 0);
+        const targetMins = goalMap[u.name] ? goalMap[u.name].target_minutes : 0;
+        const progress = targetMins > 0 ? Math.round((totalMins / targetMins) * 100) : 0;
         
-        let isOnline = onlineMap[name] || false;
-        let dotClass = isOnline ? "status-dot status-online" : "status-dot status-offline";
-        let statusSub = statusMap[name] ? `<div style="font-size:9px; color:var(--text-muted); font-weight:normal; margin-top:1px;">${statusMap[name]}</div>` : "";
-
-        let userGoalMins = (goalMap[name] && goalMap[name].target_minutes) ? goalMap[name].target_minutes : 0;
-        let goalInfoStr = "";
-        if (userGoalMins > 0) {
-          let targH = (userGoalMins / 60).toFixed(1).replace('.0', '');
-          goalInfoStr = `<div style="font-size:9px; color:var(--primary); font-weight:600; margin-top:1px;">Hedef: ${targH} sa</div>`;
-        }
-
+        const isOnline = new Date() - new Date(u.last_seen) < 60000;
+        
         const div = document.createElement("div");
         div.className = "leaderboard-item";
         div.innerHTML = `
-          <div>
-            <span class="user-badge" onclick="switchChatMode('${name}')">
-              <span class="${dotClass}" title="${isOnline ? 'Çevrimiçi' : 'Çevrimdışı'}"></span>
-              👤 ${name}${tag}${goldBadge}
-            </span>
-            ${statusSub}
-            ${goalInfoStr}
+          <div class="user-badge" onclick="switchChatMode('${u.name}')">
+            <span class="status-dot ${isOnline ? 'status-online' : 'status-offline'}"></span>
+            ${u.name} ${goalMap[u.name]?.gold_won ? '🏆' : ''}
           </div>
-          <strong style="color:var(--primary);">${timeStr}</strong>
+          <div>${Math.round(totalMins/60)}s (${progress}%)</div>
         `;
-        listEl.appendChild(div);
+        list.appendChild(div);
       });
     }
 
-    function changeTimerMode() {
-      if (activeType) toggleTimer(activeType);
-      const mode = document.getElementById("timerModeSelect").value;
-      const boxDers = document.getElementById("countdownBox-Ders");
-      const boxEglence = document.getElementById("countdownBox-Eglence");
-      
-      if (mode === 'countdown') {
-        boxDers.style.display = "block";
-        boxEglence.style.display = "block";
-      } else {
-        boxDers.style.display = "none";
-        boxEglence.style.display = "none";
-      }
-    }
-
     function toggleTimer(type) {
-      const targetBtn = document.getElementById(`btn-${type}`);
-      const mode = document.getElementById("timerModeSelect").value;
-
-      if (activeType === type) {
+      if (timerInterval) {
         clearInterval(timerInterval);
-        let completedMins = 0;
-        if (mode === 'countdown') {
-          let elapsedSecs = initialCountdownSeconds - timerRemainingSeconds;
-          completedMins = Math.round(elapsedSecs / 60);
-          if (completedMins < 1 && elapsedSecs > 0) completedMins = 1;
-          if (completedMins <= 0) completedMins = initialCountdownSeconds / 60;
-        } else {
-          completedMins = Math.round(secondsElapsed / 60) || 1;
-        }
-        
-        if (completedMins > 0) {
-          saveTimeLog(activeType, completedMins);
-        }
-
-        targetBtn.textContent = "Başlat";
-        targetBtn.className = `btn-timer btn-${type.toLowerCase()}`;
-        document.getElementById(`time-${type}`).textContent = "00:00";
-        activeType = null;
+        timerInterval = null;
+        const finalMinutes = Math.floor(secondsElapsed / 60);
+        if (finalMinutes > 0) saveTimeLog(type, finalMinutes);
+        document.getElementById(`btn-${type}`).textContent = "Başlat";
+        document.getElementById(`btn-${type}`).classList.remove('btn-stop');
         secondsElapsed = 0;
+        document.getElementById(`time-${type}`).textContent = "00:00";
       } else {
-        if (activeType) toggleTimer(activeType);
         activeType = type;
         secondsElapsed = 0;
-        
-        if (mode === 'countdown') {
-          const userMins = parseInt(document.getElementById(`targetMinutes-${type}`).value) || 25;
-          initialCountdownSeconds = userMins * 60;
-          timerRemainingSeconds = initialCountdownSeconds;
-        }
-
-        targetBtn.textContent = "Durdur";
-        targetBtn.className = "btn-timer btn-stop";
-        
         timerInterval = setInterval(() => {
-          if (mode === 'countdown') {
-            timerRemainingSeconds--;
-            let m = String(Math.floor(timerRemainingSeconds / 60)).padStart(2, '0');
-            let s = String(timerRemainingSeconds % 60).padStart(2, '0');
-            document.getElementById(`time-${type}`).textContent = `${m}:${s}`;
-            if (timerRemainingSeconds <= 0) {
-              alert("Süre doldu! Tebrikler.");
-              toggleTimer(type);
-            }
-          } else {
-            secondsElapsed++;
-            let m = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
-            let s = String(secondsElapsed % 60).padStart(2, '0');
-            document.getElementById(`time-${type}`).textContent = `${m}:${s}`;
-          }
+          secondsElapsed++;
+          document.getElementById(`time-${type}`).textContent = new Date(secondsElapsed * 1000).toISOString().substr(14, 5);
         }, 1000);
+        document.getElementById(`btn-${type}`).textContent = "Durdur";
+        document.getElementById(`btn-${type}`).classList.add('btn-stop');
       }
     }
 
-    async function saveTimeLog(type, mins) {
-      await _supabase.from('time_logs').insert([{ email: currentUserName, activity_type: type, duration_minutes: mins }]);
+    async function saveTimeLog(type, minutes) {
+      if (minutes < 1) return;
+      await _supabase.from('time_logs').insert([{ email: currentUserName, activity_type: type, duration_minutes: minutes }]);
       loadStats();
       loadLeaderboard();
     }
 
     async function loadStats() {
-      const { data } = await _supabase.from('time_logs').select('created_at, activity_type, duration_minutes').eq('email', currentUserName);
-      const gunEtiketleri = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
-      let dList = [0,0,0,0,0,0,0], eList = [0,0,0,0,0,0,0];
-      let toplam = 0, aktifGun = new Set();
+      const { data } = await _supabase.from('time_logs').select('duration_minutes');
+      const total = data ? data.reduce((s, l) => s + l.duration_minutes, 0) : 0;
+      document.getElementById("avgDisplay").textContent = `${Math.round(total / 30)} dk`;
+    }
 
-      if (data) {
-        data.forEach(l => {
-          const t = new Date(l.created_at);
-          let dateStr = t.toISOString().split('T')[0];
-          let idx = t.getDay() - 1; if (idx === -1) idx = 6;
-          toplam += l.duration_minutes;
-          aktifGun.add(dateStr);
-          if (l.activity_type === 'Ders') dList[idx] += l.duration_minutes;
-          else eList[idx] += l.duration_minutes;
-        });
-      }
-
-      const ort = Math.round(toplam / (aktifGun.size || 1));
-      document.getElementById("avgDisplay").textContent = ort >= 60 ? `${Math.floor(ort/60)} sa ${ort%60} dk` : `${ort} dk`;
-      document.getElementById("streakDisplay").textContent = `🔥 Zincir: ${aktifGun.size} Gün`;
-
-      const ctx = document.getElementById('iphoneBarChart').getContext('2d');
-      if (myChart) {
-        myChart.data.datasets[0].data = dList;
-        myChart.data.datasets[1].data = eList;
-        myChart.update();
-      } else {
-        myChart = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: gunEtiketleri,
-            datasets: [
-              { label: 'Ders', data: dList, backgroundColor: '#34d399', borderRadius: 4 },
-              { label: 'Eğlence', data: eList, backgroundColor: '#f43f5e', borderRadius: 4 }
-            ]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            scales: {
-              x: { stacked: true, grid: { display: false } },
-              y: { stacked: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { callback: v => v + 'dk' } }
-            },
-            plugins: { legend: { display: false } }
-          }
-        });
-      }
+    function changeTimerMode() {
+      const mode = document.getElementById("timerModeSelect").value;
+      const isCountDown = mode === "countdown";
+      document.getElementById("countdownBox-Ders").style.display = isCountDown ? "block" : "none";
+      document.getElementById("countdownBox-Eglence").style.display = isCountDown ? "block" : "none";
     }
   </script>
 </body>
